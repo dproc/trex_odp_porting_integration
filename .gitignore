@@ -9,6 +9,9 @@
 .lock*
 linux_dpdk*
 linux*
+!linux_odp/
+linux_odp/build_odp/
+linux_odp/version*
 scripts/_t-rex-*
 scripts/bp-sim-*
 scripts/doc/*
@@ -85,3 +88,4 @@ Thumbs.db
 *.vpw
 *.vtg
 *.vpwhist
+*~

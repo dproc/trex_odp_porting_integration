@@ -1,0 +1,2 @@
+rm -f ../linux_odp/build_odp/linux_odp/_t-rex-64
+./b --target=_t-rex-64-debug
