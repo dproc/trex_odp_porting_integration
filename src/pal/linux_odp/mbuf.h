@@ -62,6 +62,7 @@ struct rte_mbuf {
 
     odp_atomic_u32_t refcnt;
 
+    /*FIXME: added to pass the build*/
     uint64_t ol_flags;
     union {
         uint64_t tx_offload;       /**< combined for easy fetch */
@@ -153,5 +154,7 @@ uint64_t rte_rand(void);
  */
 int mbuf_to_odp_packet(rte_mbuf_t* mbuf, odp_packet_t* odp_packet_p);
 int mbuf_to_odp_packet_tbl(rte_mbuf**pkts, odp_packet_t* odp_pkts, uint16_t pkt_nm);
+
+/*FIXME: added this definition to pass the build*/
 static inline void rte_pktmbuf_refcnt_update(struct rte_mbuf *m, int16_t v) {;}
 #endif
