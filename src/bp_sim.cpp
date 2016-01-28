@@ -156,6 +156,17 @@ uint64_t CPlatformSocketInfoNoConfig::get_cores_mask(){
    return (res);
 }
 
+uint8_t CPlatformSocketInfoNoConfig::get_cores_num(){
+
+    uint8_t cores_number = m_threads_per_dual_if*m_dual_if;
+    if ( m_latency_is_enabled ) {
+        cores_number +=   2;
+    }else{
+        cores_number += 1; /* only MASTER*/
+    }
+    return cores_number;
+} 
+
 virtual_thread_id_t CPlatformSocketInfoNoConfig::thread_phy_to_virt(physical_thread_id_t  phy_id){
     return (phy_id);
 }
@@ -357,6 +368,29 @@ bool CPlatformSocketInfoConfig::sanity_check(){
     return (init());
 }
 
+uint8_t CPlatformSocketInfoConfig::get_cores_num(){
+    int i;
+    uint8_t cores_num=0;
+    for (i=0; i<MAX_THREADS_SUPPORTED; i++) {
+        if ( m_thread_phy_to_virtual[i] ) {
+
+            if (i>=64) {
+                printf(" ERROR phy threads can't be higher than 64 \n");
+                exit(1);
+            }
+            cores_num++;
+        }
+    }
+
+    if (m_latency_is_enabled) {
+        cores_num+=2;
+    } else {
+        cores_num++;
+    }
+    return (cores_num);
+}
+
+
 /* return the core mask */
 uint64_t CPlatformSocketInfoConfig::get_cores_mask(){
     int i;
@@ -454,6 +488,10 @@ bool CPlatformSocketInfo::sanity_check(){
 /* return the core mask */
 uint64_t CPlatformSocketInfo::get_cores_mask(){
     return ( m_obj->get_cores_mask());
+}
+
+uint8_t CPlatformSocketInfo::get_cores_num(){
+    return ( m_obj->get_cores_num());
 }
 
 virtual_thread_id_t CPlatformSocketInfo::thread_phy_to_virt(physical_thread_id_t  phy_id){
@@ -1552,7 +1590,7 @@ void CFlowPktInfo::do_generate_new_mbuf_rxcheck(rte_mbuf_t * m,
     /* determine starting move location */
     char *mp1 = rte_pktmbuf_mtod(m, char*);
     uint16_t mp1_offset = m_pkt_indication.getFastIpOffsetFast();
-    if (unlikely (m_pkt_indication.is_ipv6()) ) {
+    if (odp_unlikely (m_pkt_indication.is_ipv6()) ) {
         mp1_offset += IPv6Header::DefaultSize;
     }else{
         mp1_offset += IPHeader::DefaultSize;
@@ -1585,7 +1623,7 @@ void CFlowPktInfo::do_generate_new_mbuf_rxcheck(rte_mbuf_t * m,
 
     /* set option type and update ip header length */
     IPHeader * ipv4=(IPHeader *)(mp1 + 14);
-    if (unlikely (m_pkt_indication.is_ipv6()) ) {
+    if (odp_unlikely (m_pkt_indication.is_ipv6()) ) {
         IPv6Header * ipv6=(IPv6Header *)(mp1 + 14);
         uint8_t save_header= ipv6->getNextHdr();
         ipv6->setNextHdr(RX_CHECK_V6_OPT_TYPE);
@@ -1631,7 +1669,7 @@ void CFlowPktInfo::do_generate_new_mbuf_rxcheck(rte_mbuf_t * m,
     }
 
     /* update checksum for IPv4, split across 2 mbufs */
-    if (likely ( ! m_pkt_indication.is_ipv6()) ) {
+    if (odp_likely ( ! m_pkt_indication.is_ipv6()) ) {
         ipv4->updateCheckSum2((uint8_t *)ipv4, current_opt_len, (uint8_t *)rxhdr, opt_len);
     }
     
@@ -3074,7 +3112,7 @@ void CGenNode::DumpHeader(FILE *fd){
 
 void CGenNode::free_gen_node(){
     rte_mbuf_t * m=get_cache_mbuf();
-    if ( unlikely(m != NULL) ) {
+    if ( odp_unlikely(m != NULL) ) {
         rte_pktmbuf_free(m);
         m_plugin_info=0;
     }
@@ -3479,7 +3517,7 @@ int CNodeGenerator::flush_file(dsec_t max_time,
         }
 #endif*/
 
-        if (  likely ( m_is_realtime ) ){
+        if (  odp_likely ( m_is_realtime ) ){
             dsec_t dt ;
             thread->m_cpu_dp_u.commit();
 
@@ -3490,16 +3528,16 @@ int CNodeGenerator::flush_file(dsec_t max_time,
                     break;
                 }
 
-                rte_pause();
+                dry_run();
             }
             thread->m_cpu_dp_u.start_work();
 
             /* add offset in case of faliures more than 100usec */
-            if ( unlikely( dt > 0.000100 ) ) {
+            if ( odp_unlikely( dt > 0.000100 ) ) {
                 offset += dt;
             }
             /* update histogram */
-            if ( unlikely( events % 16 ) ==0 ) {
+            if ( odp_unlikely( events % 16 ) ==0 ) {
                  m_realtime_his.Add(dt);
             }
             /* flush evey 10 usec */
@@ -3524,14 +3562,14 @@ int CNodeGenerator::flush_file(dsec_t max_time,
              #endif
 
              /* if the stream has been deactivated - end */
-             if ( unlikely( node_sl->is_mask_for_free() ) ) {
+             if ( odp_unlikely( node_sl->is_mask_for_free() ) ) {
                  thread->free_node(node);
              } else {
                  node_sl->handle(thread);
              }
             
         }else{
-            if ( likely( type == CGenNode::FLOW_PKT ) ) {
+            if ( odp_likely( type == CGenNode::FLOW_PKT ) ) {
                 /* PKT */
                 if ( !(node->is_repeat_flow()) || (always==false)) {
                     flush_one_node_to_file(node);
@@ -3604,7 +3642,7 @@ CNodeGenerator::handle_slow_messages(uint8_t type,
     /* should we continue after */
     bool exit_scheduler = false;
 
-    if (unlikely (type == CGenNode::FLOW_DEFER_PORT_RELEASE) ) {
+    if (odp_unlikely (type == CGenNode::FLOW_DEFER_PORT_RELEASE) ) {
         m_p_queue.pop();
         thread->handler_defer_job(node);
         thread->free_node(node);
@@ -3927,7 +3965,7 @@ void CFlowGenListPerThread::check_msgs(void) {
     /* inlined for performance */
     m_stateless_dp_info.periodic_check_for_cp_messages();
 
-    if ( likely ( m_ring_from_rx->isEmpty() ) ) {
+    if ( odp_likely ( m_ring_from_rx->isEmpty() ) ) {
         return;
     }
 
@@ -4699,7 +4737,7 @@ int CErfIF::send_node(CGenNode * node){
     memcpy(p,CGlobalInfo::m_options.get_dst_src_mac_addr(p_id),12);
 
     /* If vlan is enabled, add vlan header */
-    if ( unlikely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
+    if ( odp_unlikely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
             /* retrieve vlan ID and  form vlan tag */
             uint8_t vlan_port = (node->m_src_ip &1);
             uint16_t vlan_protocol = EthernetHeader::Protocol::VLAN;
@@ -4879,8 +4917,8 @@ rte_mbuf_t * CPluginCallbackSimple::http_plugin(uint8_t plugin_id,
     rte_mbuf_t *mbuf;
     int16_t s_size=0;
 
-    if ( likely (lpd->getFlowPktNum() != 3) ){
-        if (unlikely (CGlobalInfo::is_ipv6_enable()) ) {
+    if ( odp_likely (lpd->getFlowPktNum() != 3) ){
+        if (odp_unlikely (CGlobalInfo::is_ipv6_enable()) ) {
             // Request a larger initial segment for IPv6
             mbuf = pkt_info->do_generate_new_mbuf_big(node);
         }else{
@@ -5004,7 +5042,7 @@ rte_mbuf_t * CPluginCallbackSimple::dyn_pyload_plugin(uint8_t plugin_id,
          exit(-1);
      }/* only for the first flow */
 
-    if ( unlikely( flow_info.vm_program != 0 ) ) {
+    if ( odp_unlikely( flow_info.vm_program != 0 ) ) {
 
         return (  pkt_info->do_generate_new_mbuf_ex_vm(node,&flow_info, &s_size) );
     }else{
@@ -5175,7 +5213,7 @@ rte_mbuf_t * CPluginCallbackSimple::sip_voice_plugin(uint8_t plugin_id,CGenNode 
     //printf(" c_ip:%x s_ip:%x c_po:%x s_po:%x  init:%x  replace:%x \n",flow_info.client_ip,flow_info.server_ip,flow_info.client_port,flow_info.server_port,flow_info.is_init_dir,flow_info.replace_server_port);
 
     //printf(" program %p  \n",flow_info.vm_program);
-    if ( unlikely( flow_info.vm_program != 0 ) ) {
+    if ( odp_unlikely( flow_info.vm_program != 0 ) ) {
 
         return (  pkt_info->do_generate_new_mbuf_ex_vm(node,&flow_info, &s_size) );
     }else{
@@ -5599,11 +5637,11 @@ rte_mbuf_t * CPluginCallbackSimple::rtsp_plugin(uint8_t plugin_id,CGenNode *    
     //printf(" c_ip:%x s_ip:%x c_po:%x s_po:%x  init:%x  replace:%x \n",flow_info.client_ip,flow_info.server_ip,flow_info.client_port,flow_info.server_port,flow_info.is_init_dir,flow_info.replace_server_port);
 
     //printf(" program %p  \n",flow_info.vm_program);
-    if ( unlikely( flow_info.vm_program != 0 ) ) {
+    if ( odp_unlikely( flow_info.vm_program != 0 ) ) {
 
         mbuf = pkt_info->do_generate_new_mbuf_ex_vm(node,&flow_info, &s_size);
     }else{
-        if (unlikely (CGlobalInfo::is_ipv6_enable()) ) {
+        if (odp_unlikely (CGlobalInfo::is_ipv6_enable()) ) {
             // Request a larger initial segment for IPv6
             mbuf = pkt_info->do_generate_new_mbuf_ex_big(node,&flow_info);
         }else{

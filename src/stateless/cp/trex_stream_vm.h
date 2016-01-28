@@ -260,7 +260,7 @@ public:
         uint16_t * p_pkt      = (uint16_t*)(pkt_base+m_pkt_offset);
         uint16_t * p_flow_var = (uint16_t*)(flow_var_base+m_offset);
 
-        if ( likely(is_big())){
+        if ( odp_likely(is_big())){
             *p_pkt=PKT_HTONS((*p_flow_var+m_val_offset));
         }else{
             *p_pkt=(*p_flow_var+m_val_offset);
@@ -278,7 +278,7 @@ public:
     inline void wr(uint8_t * flow_var_base,uint8_t * pkt_base) {
         uint32_t * p_pkt      = (uint32_t*)(pkt_base+m_pkt_offset);
         uint32_t * p_flow_var = (uint32_t*)(flow_var_base+m_offset);
-        if ( likely(is_big())){
+        if ( odp_likely(is_big())){
             *p_pkt=PKT_HTONL((*p_flow_var+m_val_offset));
         }else{
             *p_pkt=(*p_flow_var+m_val_offset);
@@ -297,7 +297,7 @@ public:
     inline void wr(uint8_t * flow_var_base,uint8_t * pkt_base) {
         uint64_t * p_pkt      = (uint64_t*)(pkt_base+m_pkt_offset);
         uint64_t * p_flow_var = (uint64_t*)(flow_var_base+m_offset);
-        if ( likely(is_big())){
+        if ( odp_likely(is_big())){
             *p_pkt=pal_ntohl64((*p_flow_var+m_val_offset));
         }else{
             *p_pkt=(*p_flow_var+m_val_offset);

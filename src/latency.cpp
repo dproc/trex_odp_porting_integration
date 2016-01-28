@@ -350,7 +350,7 @@ bool CCPortLatency::dump_packet(rte_mbuf_t * m){
 
 
 	uint16_t vlan_offset=0;
-	if ( unlikely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
+	if ( odp_unlikely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
 		vlan_offset=4;
 	}
 
@@ -588,14 +588,13 @@ void  CLatencyManager::send_pkt_all_ports(){
     }
 }
 
-
 void  CLatencyManager::wait_for_rx_dump(){
 	rte_mbuf_t * rx_pkts[64];
 	int i;
 	while ( true  ) {
-		rte_pause();
-		rte_pause();
-		rte_pause();
+		dry_run();
+		dry_run();
+		dry_run();
 		for (i=0; i<m_max_ports; i++) {
 			CLatencyManagerPerPort * lp=&m_ports[i];
 			rte_mbuf_t * m;
@@ -618,7 +617,7 @@ void CLatencyManager::handle_rx_pkt(CLatencyManagerPerPort * lp,
     CRx_check_header *rxc = NULL;
 
     lp->m_port.check_packet(m,rxc);
-    if ( unlikely(rxc!=NULL) ){
+    if ( odp_unlikely(rxc!=NULL) ){
         m_rx_check_manager.handle_packet(rxc);
     }
 
@@ -741,7 +740,7 @@ void  CLatencyManager::start(int iter){
                 try_rx_queues();
             }
             try_rx();
-            rte_pause();
+            dry_run();
         }
 
         switch (node->m_type) {

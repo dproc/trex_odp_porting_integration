@@ -25,31 +25,31 @@ limitations under the License.
 // DPDK c++ issue 
 
 #include <pwd.h>
-#include <rte_common.h>
-#include <rte_log.h>
-#include <rte_memory.h>
-#include <rte_memcpy.h>
-#include <rte_memzone.h>
-#include <rte_tailq.h>
-#include <rte_eal.h>
-#include <rte_per_lcore.h>
-#include <rte_launch.h>
-#include <rte_atomic.h>
-#include <rte_cycles.h>
-#include <rte_prefetch.h>
-#include <rte_lcore.h>
-#include <rte_per_lcore.h>
-#include <rte_branch_prediction.h>
-#include <rte_interrupts.h>
-#include <rte_pci.h>
-#include <rte_random.h>
-#include <rte_debug.h>
-#include <rte_ether.h>
+//#include <rte_common.h>
+//#include <rte_log.h>
+//#include <rte_memory.h>
+//#include <rte_memcpy.h>
+//#include <rte_memzone.h>
+//#include <rte_tailq.h>
+//#include <rte_eal.h>
+//#include <rte_per_lcore.h>
+//#include <rte_launch.h>
+//#include <rte_atomic.h>
+//#include <rte_cycles.h>
+//#include <rte_prefetch.h>
+//#include <rte_lcore.h>
+//#include <rte_per_lcore.h>
+//#include <rte_branch_prediction.h>
+//#include <rte_interrupts.h>
+//#include <rte_pci.h>
+//#include <rte_random.h>
+//#include <rte_debug.h>
+//#include <rte_ether.h>
 #include <rte_ethdev.h>
-#include <rte_ring.h>
-#include <rte_mempool.h>
-#include <rte_mbuf.h>
-#include <rte_random.h>
+//#include <rte_ring.h>
+//#include <rte_mempool.h>
+//#include <rte_mbuf.h>
+//#include <rte_random.h>
 #include "bp_sim.h"
 #include "latency.h"
 #include "os_time.h"
@@ -62,12 +62,13 @@ limitations under the License.
 #include <publisher/trex_publisher.h>
 #include <stateless/messaging/trex_stateless_messaging.h>
 
-#include <../linux_dpdk/version.h>
+#include <odp.h>
+#include <odp/helper/linux.h>
+#include <helper/eth.h>
+#include <../linux_odp/version.h>
 
-extern "C" {
-  #include <dpdk_lib18/librte_pmd_ixgbe/ixgbe/ixgbe_type.h>
-}
-#include <dpdk_lib18/librte_pmd_e1000/e1000/e1000_regs.h>
+#include "ixgbe_type.h"
+#include "e1000_regs.h"
 #include <zmq.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -132,16 +133,16 @@ public:
     virtual int get_min_sample_rate(void)=0;
     virtual void update_configuration(port_cfg_t * cfg)=0;
     virtual void update_global_config_fdir(port_cfg_t * cfg)=0;
-
-    virtual bool is_hardware_filter_is_supported(){
-        return(false);
-    }
+//
+//    virtual bool is_hardware_filter_is_supported(){
+//        return(false);
+//    }
     virtual int configure_rx_filter_rules(CPhyEthIF * _if)=0;
-
-    virtual bool is_hardware_support_drop_queue(){
-        return(false);
-    }
-
+//
+//    virtual bool is_hardware_support_drop_queue(){
+//        return(false);
+//    }
+//
     virtual int configure_drop_queue(CPhyEthIF * _if)=0;
     virtual void get_extended_stats(CPhyEthIF * _if,CPhyEthIFStats *stats)=0;
     virtual void clear_extended_stats(CPhyEthIF * _if)=0;
@@ -306,9 +307,9 @@ public:
     virtual void clear_extended_stats(CPhyEthIF * _if);
     virtual int wait_for_stable_link();
 private:
-    void add_rules(CPhyEthIF * _if,
-                   enum rte_eth_flow_type type,
-                   uint8_t ttl);
+//    void add_rules(CPhyEthIF * _if,
+//                   enum rte_eth_flow_type type,
+//                   uint8_t ttl);
 };
 
 typedef CTRexExtendedDriverBase * (*create_object_t) (void);
@@ -439,6 +440,7 @@ static inline int get_min_sample_rate(void){
 static CPlatformYamlInfo global_platform_cfg_info;
 static int global_dpdk_args_num ;
 static char * global_dpdk_args[MAX_DPDK_ARGS];
+static char * global_dpdk_args_line;
 static char global_cores_str[100];
 static char global_prefix_str[100];
 static char global_loglevel_str[20];
@@ -999,30 +1001,30 @@ int main_test(int argc , char * argv[]);
 struct port_cfg_t {
     public:
     port_cfg_t(){
-        memset(&m_port_conf,0,sizeof(rte_eth_conf));
-        memset(&m_rx_conf,0,sizeof(rte_eth_rxconf));
-        memset(&m_tx_conf,0,sizeof(rte_eth_rxconf));
-        memset(&m_rx_drop_conf,0,sizeof(rte_eth_rxconf));
-        
-
-        m_rx_conf.rx_thresh.pthresh = RX_PTHRESH;
-        m_rx_conf.rx_thresh.hthresh = RX_HTHRESH;
-        m_rx_conf.rx_thresh.wthresh = RX_WTHRESH;
-        m_rx_conf.rx_free_thresh =32;
-
-        m_rx_drop_conf.rx_thresh.pthresh = 0;
-        m_rx_drop_conf.rx_thresh.hthresh = 0;
-        m_rx_drop_conf.rx_thresh.wthresh = 0;
-        m_rx_drop_conf.rx_free_thresh =32;
-        m_rx_drop_conf.rx_drop_en=1;
-
-        m_tx_conf.tx_thresh.pthresh = TX_PTHRESH;
-        m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
-        m_tx_conf.tx_thresh.wthresh = TX_WTHRESH;
-
-        m_port_conf.rxmode.jumbo_frame=1;
-        m_port_conf.rxmode.max_rx_pkt_len =2000;
-        m_port_conf.rxmode.hw_strip_crc=1;
+//        memset(&m_port_conf,0,sizeof(rte_eth_conf));
+//        memset(&m_rx_conf,0,sizeof(rte_eth_rxconf));
+//        memset(&m_tx_conf,0,sizeof(rte_eth_rxconf));
+//        memset(&m_rx_drop_conf,0,sizeof(rte_eth_rxconf));
+//        
+//
+//        m_rx_conf.rx_thresh.pthresh = RX_PTHRESH;
+//        m_rx_conf.rx_thresh.hthresh = RX_HTHRESH;
+//        m_rx_conf.rx_thresh.wthresh = RX_WTHRESH;
+//        m_rx_conf.rx_free_thresh =32;
+//
+//        m_rx_drop_conf.rx_thresh.pthresh = 0;
+//        m_rx_drop_conf.rx_thresh.hthresh = 0;
+//        m_rx_drop_conf.rx_thresh.wthresh = 0;
+//        m_rx_drop_conf.rx_free_thresh =32;
+//        m_rx_drop_conf.rx_drop_en=1;
+//
+//        m_tx_conf.tx_thresh.pthresh = TX_PTHRESH;
+//        m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
+//        m_tx_conf.tx_thresh.wthresh = TX_WTHRESH;
+//
+//        m_port_conf.rxmode.jumbo_frame=1;
+//        m_port_conf.rxmode.max_rx_pkt_len =2000;
+//        m_port_conf.rxmode.hw_strip_crc=1;
     }
 
 
@@ -1032,68 +1034,68 @@ struct port_cfg_t {
     }
 
     inline void update_global_config_fdir(void){
-        get_ex_drv()->update_global_config_fdir(this);
+//        get_ex_drv()->update_global_config_fdir(this);
     }
 
 	/* enable FDIR */
-	inline void update_global_config_fdir_10g_1g(void){
-		m_port_conf.fdir_conf.mode=RTE_FDIR_MODE_PERFECT;
-		m_port_conf.fdir_conf.pballoc=RTE_FDIR_PBALLOC_64K;
-		m_port_conf.fdir_conf.status=RTE_FDIR_NO_REPORT_STATUS; 
-		/* Offset of flexbytes field in RX packets (in 16-bit word units). */
-		/* Note: divide by 2 to convert byte offset to word offset */
-		if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
-			m_port_conf.fdir_conf.flexbytes_offset=(14+6)/2;
-		}else{
-			m_port_conf.fdir_conf.flexbytes_offset=(14+8)/2;
-		}
-                        
-		/* Increment offset 4 bytes for the case where we add VLAN */
-		if (  CGlobalInfo::m_options.preview.get_vlan_mode_enable() ){
-	        	m_port_conf.fdir_conf.flexbytes_offset+=(4/2);
-		}
-		m_port_conf.fdir_conf.drop_queue=1;
-	}
+//	inline void update_global_config_fdir_10g_1g(void){
+//		m_port_conf.fdir_conf.mode=RTE_FDIR_MODE_PERFECT;
+//		m_port_conf.fdir_conf.pballoc=RTE_FDIR_PBALLOC_64K;
+//		m_port_conf.fdir_conf.status=RTE_FDIR_NO_REPORT_STATUS; 
+//		/* Offset of flexbytes field in RX packets (in 16-bit word units). */
+//		/* Note: divide by 2 to convert byte offset to word offset */
+//		if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
+//			m_port_conf.fdir_conf.flexbytes_offset=(14+6)/2;
+//		}else{
+//			m_port_conf.fdir_conf.flexbytes_offset=(14+8)/2;
+//		}
+//                        
+//		/* Increment offset 4 bytes for the case where we add VLAN */
+//		if (  CGlobalInfo::m_options.preview.get_vlan_mode_enable() ){
+//	        	m_port_conf.fdir_conf.flexbytes_offset+=(4/2);
+//		}
+//		m_port_conf.fdir_conf.drop_queue=1;
+//	}
+//
+//    inline void update_global_config_fdir_40g(void){
+//        m_port_conf.fdir_conf.mode=RTE_FDIR_MODE_PERFECT;
+//        m_port_conf.fdir_conf.pballoc=RTE_FDIR_PBALLOC_64K;
+//        m_port_conf.fdir_conf.status=RTE_FDIR_NO_REPORT_STATUS; 
+//        /* Offset of flexbytes field in RX packets (in 16-bit word units). */
+//        /* Note: divide by 2 to convert byte offset to word offset */
+//        #if 0
+//        if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
+//            m_port_conf.fdir_conf.flexbytes_offset=(14+6)/2;
+//        }else{
+//            m_port_conf.fdir_conf.flexbytes_offset=(14+8)/2;
+//        }
+//
+//        /* Increment offset 4 bytes for the case where we add VLAN */
+//        if (  CGlobalInfo::m_options.preview.get_vlan_mode_enable() ){
+//                m_port_conf.fdir_conf.flexbytes_offset+=(4/2);
+//        }
+//        #endif
+//
+//    // TBD Flow Director does not work with XL710 yet we need to understand why 
+//    #if 0
+//        struct rte_eth_fdir_flex_conf * lp = &m_port_conf.fdir_conf.flex_conf;
+//
+//        //lp->nb_flexmasks=1;
+//        //lp->flex_mask[0].flow_type=RTE_ETH_FLOW_TYPE_SCTPV4;
+//        //memset(lp->flex_mask[0].mask,0xff,RTE_ETH_FDIR_MAX_FLEXLEN);
+//
+//        lp->nb_payloads=1;
+//        lp->flex_set[0].type = RTE_ETH_L3_PAYLOAD; 
+//        lp->flex_set[0].src_offset[0]=8;
+//
+//        //m_port_conf.fdir_conf.drop_queue=1;
+//    #endif
+//    }
 
-    inline void update_global_config_fdir_40g(void){
-        m_port_conf.fdir_conf.mode=RTE_FDIR_MODE_PERFECT;
-        m_port_conf.fdir_conf.pballoc=RTE_FDIR_PBALLOC_64K;
-        m_port_conf.fdir_conf.status=RTE_FDIR_NO_REPORT_STATUS; 
-        /* Offset of flexbytes field in RX packets (in 16-bit word units). */
-        /* Note: divide by 2 to convert byte offset to word offset */
-        #if 0
-        if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
-            m_port_conf.fdir_conf.flexbytes_offset=(14+6)/2;
-        }else{
-            m_port_conf.fdir_conf.flexbytes_offset=(14+8)/2;
-        }
-
-        /* Increment offset 4 bytes for the case where we add VLAN */
-        if (  CGlobalInfo::m_options.preview.get_vlan_mode_enable() ){
-                m_port_conf.fdir_conf.flexbytes_offset+=(4/2);
-        }
-        #endif
-
-    // TBD Flow Director does not work with XL710 yet we need to understand why 
-    #if 0
-        struct rte_eth_fdir_flex_conf * lp = &m_port_conf.fdir_conf.flex_conf;
-
-        //lp->nb_flexmasks=1;
-        //lp->flex_mask[0].flow_type=RTE_ETH_FLOW_TYPE_SCTPV4;
-        //memset(lp->flex_mask[0].mask,0xff,RTE_ETH_FDIR_MAX_FLEXLEN);
-
-        lp->nb_payloads=1;
-        lp->flex_set[0].type = RTE_ETH_L3_PAYLOAD; 
-        lp->flex_set[0].src_offset[0]=8;
-
-        //m_port_conf.fdir_conf.drop_queue=1;
-    #endif
-    }
-
-    struct rte_eth_conf     m_port_conf;
-    struct rte_eth_rxconf   m_rx_conf;
-    struct rte_eth_rxconf   m_rx_drop_conf;
-    struct rte_eth_txconf   m_tx_conf;
+//    struct rte_eth_conf     m_port_conf;
+//    struct rte_eth_rxconf   m_rx_conf;
+//    struct rte_eth_rxconf   m_rx_drop_conf;
+//    struct rte_eth_txconf   m_tx_conf;
 };
 
 
@@ -1205,36 +1207,35 @@ public:
     }
     void Delete();
 
-    void set_rx_queue(uint8_t rx_queue){
-        m_rx_queue=rx_queue;
-    }
+//    void set_rx_queue(uint8_t rx_queue){
+//        m_rx_queue=rx_queue;
+//    }
+    
+    odp_pktio_t create_pktio(odp_pool_t pool);
 
+    void configure(void);
 
-    void configure(uint16_t nb_rx_queue,
-				  uint16_t nb_tx_queue,
-				  const struct rte_eth_conf *eth_conf);
-
-    void macaddr_get(struct ether_addr *mac_addr);
+    void macaddr_get(odph_ethaddr_t *mac_addr);
 
     void get_stats(CPhyEthIFStats *stats);
 
     void get_stats_1g(CPhyEthIFStats *stats);
 
 
-    void rx_queue_setup(uint16_t rx_queue_id,
-                        uint16_t nb_rx_desc, 
-                        unsigned int socket_id,
-                        const struct rte_eth_rxconf *rx_conf,
-                        struct rte_mempool *mb_pool);
+//    void rx_queue_setup(uint16_t rx_queue_id,
+//                        uint16_t nb_rx_desc, 
+//                        unsigned int socket_id,
+//                        const struct rte_eth_rxconf *rx_conf,
+//                        struct rte_mempool *mb_pool);
+//
+//    void tx_queue_setup(uint16_t tx_queue_id,
+//                        uint16_t nb_tx_desc, 
+//                        unsigned int socket_id,
+//                        const struct rte_eth_txconf *tx_conf);
 
-    void tx_queue_setup(uint16_t tx_queue_id,
-                        uint16_t nb_tx_desc, 
-                        unsigned int socket_id,
-                        const struct rte_eth_txconf *tx_conf);
+//    void configure_rx_drop_queue();
 
-    void configure_rx_drop_queue();
-
-    void configure_rx_duplicate_rules();
+ //   void configure_rx_duplicate_rules();
 
     void start();
 
@@ -1242,9 +1243,9 @@ public:
 
     void update_link_status();
 
-    bool is_link_up(){
-        return (m_link.link_status?true:false);
-    }
+//    bool is_link_up(){
+//        return (m_link.link_status?true:false);
+//    }
 
     void dump_link(FILE *fd);
 
@@ -1292,9 +1293,8 @@ public:
 
 public:
 
-    inline uint16_t  tx_burst(uint16_t queue_id,
-                                struct rte_mbuf **tx_pkts, 
-                                uint16_t nb_pkts);
+    inline uint16_t  tx_burst(struct rte_mbuf **tx_pkts, 
+                              uint16_t nb_pkts);
 
     inline uint16_t  rx_burst(uint16_t queue_id,
                                 struct rte_mbuf **rx_pkts, 
@@ -1307,7 +1307,8 @@ public:
     	reg_addr = (void *)((char *)m_dev_info.pci_dev->mem_resource[0].addr +
     			    reg_off);
         reg_v = *((volatile uint32_t *)reg_addr);
-        return rte_le_to_cpu_32(reg_v);
+       // return rte_le_to_cpu_32(reg_v);
+        return reg_v;
     }
 
 
@@ -1317,7 +1318,7 @@ public:
     
     	reg_addr = (void *)((char *)m_dev_info.pci_dev->mem_resource[0].addr +
     			    reg_off);
-    	*((volatile uint32_t *)reg_addr) = rte_cpu_to_le_32(reg_v);
+    	*((volatile uint32_t *)reg_addr) =reg_v;// rte_cpu_to_le_32(reg_v);
     }
 
     void dump_stats_extended(FILE *fd);
@@ -1328,7 +1329,7 @@ public:
 private:
     uint8_t                  m_port_id;
     uint8_t                  m_rx_queue;
-    struct rte_eth_link      m_link;
+    //struct rte_eth_link      m_link;
     uint64_t                 m_sw_try_tx_pkt;
     uint64_t                 m_sw_tx_drop_pkt;
     CBwMeasure               m_bw_tx;
@@ -1343,6 +1344,7 @@ private:
     float                    m_last_tx_pps;
     float                    m_last_rx_pps;
 public:
+    odp_pktio_t              m_pkt_io;
     struct rte_eth_dev_info  m_dev_info;   
 };
 
@@ -1425,20 +1427,18 @@ void CPhyEthIF::dump_stats_extended(FILE *fd){
 
 
 
-void CPhyEthIF::configure(uint16_t nb_rx_queue,
-                          uint16_t nb_tx_queue,
-                          const struct rte_eth_conf *eth_conf){
-    int ret;
-    ret = rte_eth_dev_configure(m_port_id, 
-                                nb_rx_queue,
-                                nb_tx_queue, 
-                                eth_conf);
-
-    if (ret < 0)
-        rte_exit(EXIT_FAILURE, "Cannot configure device: "
-                "err=%d, port=%u\n",
-              ret, m_port_id);
-
+void CPhyEthIF::configure(void) {
+//    int ret;
+//    ret = rte_eth_dev_configure(m_port_id, 
+//                                nb_rx_queue,
+//                                nb_tx_queue, 
+//                                eth_conf);
+//
+//    if (ret < 0)
+//        rte_exit(EXIT_FAILURE, "Cannot configure device: "
+//                "err=%d, port=%u\n",
+//              ret, m_port_id);
+//
     /* get device info */
     rte_eth_dev_info_get(m_port_id, &m_dev_info);
 
@@ -1457,73 +1457,76 @@ rx-queue 1 - Latency measurement packets will go here
 
 */
 
-void CPhyEthIF::configure_rx_duplicate_rules(){
+//void CPhyEthIF::configure_rx_duplicate_rules(){
+//
+//    if ( get_is_rx_filter_enable() ){
+//
+//        if ( get_ex_drv()->is_hardware_filter_is_supported()==false ){
+//            printf(" ERROR this feature is not supported with current hardware \n");
+//            exit(1);
+//        }
+//        get_ex_drv()->configure_rx_filter_rules(this);
+//    }
+//}
+//
 
-    if ( get_is_rx_filter_enable() ){
+//void CPhyEthIF::configure_rx_drop_queue(){
+//
+//    if ( get_vm_one_queue_enable() ) {
+//        return;
+//    }
+//    if ( CGlobalInfo::m_options.is_latency_disabled()==false ) {
+//        if ( (!get_ex_drv()->is_hardware_support_drop_queue())  ) {
+//            printf(" ERROR latency feature is not supported with current hardware  \n");
+//            exit(1);
+//        }
+//    }
+//    get_ex_drv()->configure_drop_queue(this);
+//}
+//
 
-        if ( get_ex_drv()->is_hardware_filter_is_supported()==false ){
-            printf(" ERROR this feature is not supported with current hardware \n");
-            exit(1);
-        }
-        get_ex_drv()->configure_rx_filter_rules(this);
-    }
-}
+//void CPhyEthIF::rx_queue_setup(uint16_t rx_queue_id,
+//                               uint16_t nb_rx_desc, 
+//                               unsigned int socket_id,
+//                               const struct rte_eth_rxconf *rx_conf,
+//                               struct rte_mempool *mb_pool){
+//
+//    int ret = rte_eth_rx_queue_setup(m_port_id , rx_queue_id, 
+//                                     nb_rx_desc,
+//                                     socket_id, 
+//                                     rx_conf,
+//                                     mb_pool);
+//    if (ret < 0)
+//        rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup: "
+//                "err=%d, port=%u\n",
+//              ret, m_port_id);
+//}
+//
 
-
-void CPhyEthIF::configure_rx_drop_queue(){
-
-    if ( get_vm_one_queue_enable() ) {
-        return;
-    }
-    if ( CGlobalInfo::m_options.is_latency_disabled()==false ) {
-        if ( (!get_ex_drv()->is_hardware_support_drop_queue())  ) {
-            printf(" ERROR latency feature is not supported with current hardware  \n");
-            exit(1);
-        }
-    }
-    get_ex_drv()->configure_drop_queue(this);
-}
-
-
-void CPhyEthIF::rx_queue_setup(uint16_t rx_queue_id,
-                               uint16_t nb_rx_desc, 
-                               unsigned int socket_id,
-                               const struct rte_eth_rxconf *rx_conf,
-                               struct rte_mempool *mb_pool){
-
-    int ret = rte_eth_rx_queue_setup(m_port_id , rx_queue_id, 
-                                     nb_rx_desc,
-                                     socket_id, 
-                                     rx_conf,
-                                     mb_pool);
-    if (ret < 0)
-        rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup: "
-                "err=%d, port=%u\n",
-              ret, m_port_id);
-}
-
-
-
-void CPhyEthIF::tx_queue_setup(uint16_t tx_queue_id,
-                               uint16_t nb_tx_desc, 
-                               unsigned int socket_id,
-                               const struct rte_eth_txconf *tx_conf){
-
-    int ret = rte_eth_tx_queue_setup( m_port_id,
-                                     tx_queue_id, 
-                                      nb_tx_desc,
-                                      socket_id, 
-                                      tx_conf);
-    if (ret < 0)
-        rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: "
-                "err=%d, port=%u queue=%u\n",
-              ret, m_port_id, tx_queue_id);
-
-}
+//
+//void CPhyEthIF::tx_queue_setup(uint16_t tx_queue_id,
+//                               uint16_t nb_tx_desc, 
+//                               unsigned int socket_id,
+//                               const struct rte_eth_txconf *tx_conf){
+//
+//    int ret = rte_eth_tx_queue_setup( m_port_id,
+//                                     tx_queue_id, 
+//                                      nb_tx_desc,
+//                                      socket_id, 
+//                                      tx_conf);
+//    if (ret < 0)
+//        rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: "
+//                "err=%d, port=%u queue=%u\n",
+//              ret, m_port_id, tx_queue_id);
+//
+//}
 
 
 void CPhyEthIF::stop(){
-    rte_eth_dev_stop(m_port_id);
+//    rte_eth_dev_stop(m_port_id);
+    int ret;
+    ret = odp_pktio_start(m_pkt_io);
+    assert (ret==0);
 }
 
 
@@ -1531,107 +1534,112 @@ void CPhyEthIF::start(){
 
     get_ex_drv()->clear_extended_stats(this);
 
-    int ret;
+    int ret=-1;
 
     m_bw_tx.reset();
     m_bw_rx.reset();
 
     m_stats.Clear();
-    int i; 
-    for (i=0;i<10; i++ ) {
-        ret = rte_eth_dev_start(m_port_id);
-        if (ret==0) {
-            return;
-        }
-        delay(1000);
+//    int i; 
+//    for (i=0;i<10; i++ ) {
+//        ret = rte_eth_dev_start(m_port_id);
+//        if (ret==0) {
+//            return;
+//        }
+//        delay(1000);
+//    }
+    if (m_pkt_io!=ODP_PKTIO_INVALID) {
+        ret = odp_pktio_start(m_pkt_io);
     }
-    if (ret < 0)
-        rte_exit(EXIT_FAILURE, "rte_eth_dev_start: "
-                "err=%d, port=%u\n",
-              ret, m_port_id);
+    if (ret != 0)
+        printf("EXIT_FAILURE,odp_pktio_start: "
+                "err=%d, port=%u, pkt_io:%lx\n",
+                 ret, m_port_id, odp_pktio_to_u64(m_pkt_io));
+        exit(0);
 
 }
 
-void CPhyEthIF::disable_flow_control(){
-       if ( get_vm_one_queue_enable()  ){
-           return;
-       }
-       int ret;
-       if ( !CGlobalInfo::m_options.preview.get_is_disable_flow_control_setting()  ){
-        // see trex-64 issue with loopback on the same NIC
-        struct rte_eth_fc_conf fc_conf;
-        memset(&fc_conf,0,sizeof(fc_conf));
-        fc_conf.mode=RTE_FC_NONE;
-        fc_conf.autoneg=1;
-        fc_conf.pause_time=100;
-        int i;
-        for (i=0; i<5; i++) {
-            ret=rte_eth_dev_flow_ctrl_set(m_port_id,&fc_conf);
-            if (ret==0) {
-                break;
-            }
-            delay(1000);
-        }
-        if (ret < 0)
-          rte_exit(EXIT_FAILURE, "rte_eth_dev_flow_ctrl_set: "
-                  "err=%d, port=%u\n probably link is down please check you link activity or enable flow-control using this CLI flag --no-flow-control  \n",
-                ret, m_port_id);
-    }
-}
-
-
+//void CPhyEthIF::disable_flow_control(){
+//       if ( get_vm_one_queue_enable()  ){
+//           return;
+//       }
+//       int ret;
+//       if ( !CGlobalInfo::m_options.preview.get_is_disable_flow_control_setting()  ){
+//        // see trex-64 issue with loopback on the same NIC
+//        struct rte_eth_fc_conf fc_conf;
+//        memset(&fc_conf,0,sizeof(fc_conf));
+//        fc_conf.mode=RTE_FC_NONE;
+//        fc_conf.autoneg=1;
+//        fc_conf.pause_time=100;
+//        int i;
+//        for (i=0; i<5; i++) {
+//            ret=rte_eth_dev_flow_ctrl_set(m_port_id,&fc_conf);
+//            if (ret==0) {
+//                break;
+//            }
+//            delay(1000);
+//        }
+//        if (ret < 0)
+//          rte_exit(EXIT_FAILURE, "rte_eth_dev_flow_ctrl_set: "
+//                  "err=%d, port=%u\n probably link is down please check you link activity or enable flow-control using this CLI flag --no-flow-control  \n",
+//                ret, m_port_id);
+//    }
+//}
+//
+//
 
 void CPhyEthIF::dump_link(FILE *fd){
     fprintf(fd,"port : %d \n",(int)m_port_id);
     fprintf(fd,"------------\n");
 
     fprintf(fd,"link         : ");
-    if (m_link.link_status) {
-        fprintf(fd," link : Link Up - speed %u Mbps - %s\n",
-               (unsigned) m_link.link_speed,
-               (m_link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
-               ("full-duplex") : ("half-duplex\n"));
-    } else {
-        fprintf(fd," Link Down\n");
-    }
+//    if (m_link.link_status) {
+//        fprintf(fd," link : Link Up - speed %u Mbps - %s\n",
+//               (unsigned) m_link.link_speed,
+//               (m_link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
+//               ("full-duplex") : ("half-duplex\n"));
+//    } else {
+//        fprintf(fd," Link Down\n");
+//    }
     fprintf(fd,"promiscuous  : %d \n",get_promiscuous());
 }
 
-void CPhyEthIF::update_link_status(){
-    rte_eth_link_get(m_port_id, &m_link);
-}
-
-void CPhyEthIF::add_mac(char * mac){
-    struct ether_addr mac_addr;
-    int i=0;
-    for (i=0; i<6;i++) {
-        mac_addr.addr_bytes[i] =mac[i];
-    }
-    rte_eth_dev_mac_addr_add(m_port_id, &mac_addr,0);
-}
-
+//void CPhyEthIF::update_link_status(){
+//    rte_eth_link_get(m_port_id, &m_link);
+//}
+//
+//void CPhyEthIF::add_mac(char * mac){
+//    struct ether_addr mac_addr;
+//    int i=0;
+//    for (i=0; i<6;i++) {
+//        mac_addr.addr_bytes[i] =mac[i];
+//    }
+//    rte_eth_dev_mac_addr_add(m_port_id, &mac_addr,0);
+//}
+//
 void CPhyEthIF::set_promiscuous(bool enable){
-    if (enable) {
-        rte_eth_promiscuous_enable(m_port_id);
-    }else{
-       rte_eth_promiscuous_disable(m_port_id);
-    }
+    int ret;
+    ret = odp_pktio_promisc_mode_set(m_pkt_io, enable);
+    assert(ret==0);
 }
 
 bool CPhyEthIF::get_promiscuous(){
-    int ret=rte_eth_promiscuous_get(m_port_id);
-    if (ret<0) {
-        rte_exit(EXIT_FAILURE, "rte_eth_promiscuous_get: "
-                "err=%d, port=%u\n",
-                 ret, m_port_id);
-
+    int ret = odp_pktio_promisc_mode(m_pkt_io);
+    
+    switch (ret) {
+    case 0: 
+        return false;
+    case 1: 
+        return true;
+    default :
+        assert(0);
     }
-    return ( ret?true:false);
-}
+} 
 
 
-void CPhyEthIF::macaddr_get(struct ether_addr *mac_addr){
-       rte_eth_macaddr_get(m_port_id , mac_addr);
+void CPhyEthIF::macaddr_get(odph_ethaddr_t *mac_addr){
+//       rte_eth_macaddr_get(m_port_id , mac_addr);
+    odp_pktio_mac_addr(m_pkt_io, mac_addr, sizeof(odph_ethaddr_t));
 }
 
 void CPhyEthIF::get_stats_1g(CPhyEthIFStats *stats){ 
@@ -1794,14 +1802,20 @@ void CPhyEthIF::dump_stats(FILE *fd){
 }
 
 void CPhyEthIF::stats_clear(){
-    rte_eth_stats_reset(m_port_id);
+    /* FIXME: how handle the stats as ODP does not provide related api. 
+     * maybe we can note the start number and calculate it by ourself
+     */
+//    rte_eth_stats_reset(m_port_id);
     m_stats.Clear();
 }
 
-inline uint16_t  CPhyEthIF::tx_burst(uint16_t queue_id,
-                                       struct rte_mbuf **tx_pkts, 
-                                       uint16_t nb_pkts){
-    uint16_t ret = rte_eth_tx_burst(m_port_id, queue_id, tx_pkts, nb_pkts);
+inline uint16_t  CPhyEthIF::tx_burst(rte_mbuf **tx_pkts, 
+                                     uint16_t nb_pkts){
+    int cnt=0;
+    odp_packet_t odp_pkts[nb_pkts];
+    cnt = mbuf_to_odp_packet_tbl(tx_pkts, odp_pkts, nb_pkts); 
+    assert (cnt==nb_pkts);
+    uint16_t ret = odp_pktio_send(m_pkt_io, odp_pkts, nb_pkts); 
     return (ret);
 }
 
@@ -1809,9 +1823,9 @@ inline uint16_t  CPhyEthIF::tx_burst(uint16_t queue_id,
 inline uint16_t  CPhyEthIF::rx_burst(uint16_t queue_id,
                                 struct rte_mbuf **rx_pkts, 
                                 uint16_t nb_pkts){
-   return (rte_eth_rx_burst(m_port_id, queue_id,
-                                     rx_pkts, nb_pkts));
-
+//   return (rte_eth_rx_burst(m_port_id, queue_id,
+//                                     rx_pkts, nb_pkts));
+    return 0;
 }
 
 
@@ -1830,7 +1844,7 @@ public:
     }
     uint16_t                m_tx_queue_id;
     uint16_t                m_len;
-    rte_mbuf_t *            m_table[MAX_PKT_BURST];
+    rte_mbuf   *            m_table[MAX_PKT_BURST];
     CPhyEthIF  *            m_port;  
 };
 
@@ -1910,7 +1924,7 @@ protected:
     CCorePerPort m_ports[CS_NUM]; /* each core has 2 tx queues 1. client side and server side */
     CNodeRing *  m_ring_to_rx;
 
-} __rte_cache_aligned; ;
+} ODP_ALIGNED_CACHE; ;
 
 class CCoreEthIFStateless : public CCoreEthIF {
 public:
@@ -1937,36 +1951,36 @@ bool CCoreEthIF::Create(uint8_t             core_id,
 }
 
 void CCoreEthIF::flush_rx_queue(void){
-    pkt_dir_t   dir ;
-    bool is_latency=get_is_latency_thread_enable();
-    for (dir=CLIENT_SIDE; dir<CS_NUM; dir++) {
-        CCorePerPort * lp_port=&m_ports[dir];
-        CPhyEthIF * lp=lp_port->m_port;
+//    pkt_dir_t   dir ;
+//    bool is_latency=get_is_latency_thread_enable();
+//    for (dir=CLIENT_SIDE; dir<CS_NUM; dir++) {
+//        CCorePerPort * lp_port=&m_ports[dir];
+//        CPhyEthIF * lp=lp_port->m_port;
+//
+//        rte_mbuf_t * rx_pkts[32];
+//        int j=0;
 
-        rte_mbuf_t * rx_pkts[32];
-        int j=0;
-
-        while (true) {
-            j++;
-            uint16_t cnt =lp->rx_burst(0,rx_pkts,32);
-            if ( cnt ) {
-                int i;
-                for (i=0; i<(int)cnt;i++) {
-                    rte_mbuf_t * m=rx_pkts[i];
-                    if ( is_latency ){
-                        if (!process_rx_pkt(dir,m)){
-                            rte_pktmbuf_free(m);
-                        }
-                    }else{
-                        rte_pktmbuf_free(m);
-                    }
-                }
-            }
-            if ((cnt<5) || j>10 ) {
-                break;
-            }
-        }
-    }
+//        while (true) {
+//            j++;
+//            uint16_t cnt =lp->rx_burst(0,rx_pkts,32);
+//            if ( cnt ) {
+//                int i;
+//                for (i=0; i<(int)cnt;i++) {
+//                    rte_mbuf_t * m=rx_pkts[i];
+//                    if ( is_latency ){
+//                        if (!process_rx_pkt(dir,m)){
+//                            rte_pktmbuf_free(m);
+//                        }
+//                    }else{
+//                        rte_pktmbuf_free(m);
+//                    }
+//                }
+//            }
+//            if ((cnt<5) || j>10 ) {
+//                break;
+//            }
+//        }
+//    }
 }
 
 int CCoreEthIF::flush_tx_queue(void){
@@ -1975,13 +1989,13 @@ int CCoreEthIF::flush_tx_queue(void){
     for (dir=CLIENT_SIDE; dir<CS_NUM; dir++) {
         CCorePerPort * lp_port=&m_ports[dir];
         CVirtualIFPerSideStats  * lp_stats= &m_stats[dir];
-        if ( likely(lp_port->m_len > 0) ) {
+        if (odp_likely(lp_port->m_len > 0) ) {
             send_burst(lp_port,lp_port->m_len,lp_stats);
              lp_port->m_len = 0;
         }
     }
 
-    if ( unlikely( get_vm_one_queue_enable() ) ){
+    if ( odp_unlikely( get_vm_one_queue_enable() ) ){
         /* try drain the rx packets */
         flush_rx_queue();
     }
@@ -2044,22 +2058,22 @@ int CCoreEthIF::send_burst(CCorePerPort * lp_port,
                            uint16_t len,
                            CVirtualIFPerSideStats  * lp_stats){
 
-    uint16_t ret = lp_port->m_port->tx_burst(lp_port->m_tx_queue_id,lp_port->m_table,len);
+    uint16_t ret = lp_port->m_port->tx_burst(lp_port->m_table,len);
     #ifdef DELAY_IF_NEEDED
-    while ( unlikely( ret<len ) ){
-        rte_delay_us(1);
+    while ( odp_unlikely( ret<len ) ){
+        dry_run();
+        //rte_delay_us(1);
         //rte_pause();
         //rte_pause();
         lp_stats->m_tx_queue_full += 1;
-        uint16_t ret1=lp_port->m_port->tx_burst(lp_port->m_tx_queue_id,
-                                        &lp_port->m_table[ret],
-                                        len-ret);
+        uint16_t ret1=lp_port->m_port->tx_burst(&lp_port->m_table[ret],
+                                                len-ret);
         ret+=ret1;
     }
     #endif
 
     /* CPU has burst of packets , more that TX can send need to drop them !!*/
-    if ( unlikely(ret < len) ) {
+    if ( odp_unlikely(ret < len) ) {
         lp_stats->m_tx_drop += (len-ret);
         uint16_t i;
         for (i=ret; i<len;i++) {
@@ -2086,7 +2100,7 @@ int CCoreEthIF::send_pkt(CCorePerPort * lp_port,
     lp_port->m_table[len]=m;
     len++;
     /* enough pkts to be sent */
-    if (unlikely(len == MAX_PKT_BURST)) {
+    if (odp_unlikely(len == MAX_PKT_BURST)) {
         send_burst(lp_port, MAX_PKT_BURST,lp_stats);
         len = 0;
     }
@@ -2114,13 +2128,13 @@ void CCoreEthIF::update_mac_addr(CGenNode * node,uint8_t *p){
         p[5]+= (node->m_src_ip % CGlobalInfo::m_options.m_mac_splitter);
     }
 
-    if ( unlikely( CGlobalInfo::m_options.preview.get_mac_ip_mapping_enable() ) ) {
+    if ( odp_unlikely( CGlobalInfo::m_options.preview.get_mac_ip_mapping_enable() ) ) {
         /* mac mapping file is configured
          */
         if (node->m_src_mac.inused==INUSED) {
             memcpy(p+6, &node->m_src_mac.mac, sizeof(uint8_t)*6);
         }
-    } else if ( unlikely( CGlobalInfo::m_options.preview.get_mac_ip_overide_enable() ) ){
+    } else if ( odp_unlikely( CGlobalInfo::m_options.preview.get_mac_ip_overide_enable() ) ){
         /* client side */
         if ( node->is_initiator_pkt() ){
             *((uint32_t*)(p+6))=PKT_NTOHL(node->m_src_ip);
@@ -2154,7 +2168,7 @@ int CCoreEthIFStateless::send_node(CGenNode * no){
 
 int CCoreEthIF::send_node(CGenNode * node){
 
-    if ( unlikely( node->get_cache_mbuf() !=NULL ) ) {
+    if ( odp_unlikely( node->get_cache_mbuf() !=NULL ) ) {
         pkt_dir_t       dir;
         rte_mbuf_t *    m=node->get_cache_mbuf();
         dir=(pkt_dir_t)node->get_mbuf_cache_dir();
@@ -2175,7 +2189,7 @@ int CCoreEthIF::send_node(CGenNode * node){
     dir = node->cur_interface_dir();
     single_port = node->get_is_all_flow_from_same_dir() ;
 
-    if ( unlikely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
+    if ( odp_unlikely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
         /* which vlan to choose 0 or 1*/
         uint8_t vlan_port = (node->m_src_ip &1);
 
@@ -2185,7 +2199,7 @@ int CCoreEthIF::send_node(CGenNode * node){
 		uint16_t vlan_id = CGlobalInfo::m_options.m_vlan_port[vlan_port];
 
 
-		if (likely( vlan_id >0 ) ) {
+		if (odp_likely( vlan_id >0 ) ) {
 			m->vlan_tci = vlan_id;
 			dir = dir ^ vlan_port;
 		}else{
@@ -2198,7 +2212,7 @@ int CCoreEthIF::send_node(CGenNode * node){
     CCorePerPort *  lp_port=&m_ports[dir];
     CVirtualIFPerSideStats  * lp_stats = &m_stats[dir];
 
-    if (unlikely(m==0)) {
+    if (odp_unlikely(m==0)) {
         lp_stats->m_tx_alloc_error++;
         return(0);
     }
@@ -2213,17 +2227,17 @@ int CCoreEthIF::send_node(CGenNode * node){
     /* if customer enables both mac_file and get_mac_ip_overide, 
      * we will apply mac_file.
      */
-    if ( unlikely(CGlobalInfo::m_options.preview.get_mac_ip_features_enable() ) ) {
+    if ( odp_unlikely(CGlobalInfo::m_options.preview.get_mac_ip_features_enable() ) ) {
         update_mac_addr(node,p);
     }
 
-	if ( unlikely( node->is_rx_check_enabled() ) ) {
+	if ( odp_unlikely( node->is_rx_check_enabled() ) ) {
         lp_stats->m_tx_rx_check_pkt++;
         lp->do_generate_new_mbuf_rxcheck(m,node,dir,single_port);
         lp_stats->m_template.inc_template( node->get_template_id( ));
 	}else{
         // cache only if it is not sample as this is more complex mbuf struct 
-        if ( unlikely( node->can_cache_mbuf() ) ) {
+        if ( odp_unlikely( node->can_cache_mbuf() ) ) {
             if ( !CGlobalInfo::m_options.preview.isMbufCacheDisabled() ){
                 m_mbuf_cache++;
                 if (m_mbuf_cache < MAX_MBUF_CACHE) {
@@ -2280,14 +2294,14 @@ public:
     virtual int tx(rte_mbuf_t * m){
         rte_mbuf_t * tx_pkts[2];
         tx_pkts[0]=m;
-        if ( likely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
+        if ( odp_likely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
              /* vlan mode is the default */
              /* set the vlan */
              m->ol_flags = PKT_TX_VLAN_PKT;
              m->vlan_tci =CGlobalInfo::m_options.m_vlan_port[0];
 			 m->l2_len   =14;
         }
-        uint16_t res=m_port->tx_burst(m_tx_queue_id,tx_pkts,1);
+        uint16_t res=m_port->tx_burst(tx_pkts,1);
         if ( res == 0 ) {
             rte_pktmbuf_free(m);
             //printf(" queue is full for latency packet !!\n");
@@ -2304,19 +2318,21 @@ public:
         return (0);
     }
     virtual rte_mbuf_t * rx(){
-        rte_mbuf_t * rx_pkts[1];
-        uint16_t cnt=m_port->rx_burst(m_rx_queue_id,rx_pkts,1);
-        if (cnt) {
-            return (rx_pkts[0]);
-        }else{
-            return (0);
-        }
+//        rte_mbuf_t * rx_pkts[1];
+//        uint16_t cnt=m_port->rx_burst(m_rx_queue_id,rx_pkts,1);
+//        if (cnt) {
+//            return (rx_pkts[0]);
+//        }else{
+//            return (0);
+//        }
+        return NULL;
     }
 
     virtual uint16_t rx_burst(struct rte_mbuf **rx_pkts, 
                                uint16_t nb_pkts){
-        uint16_t cnt=m_port->rx_burst(m_rx_queue_id,rx_pkts,nb_pkts);
-        return (cnt);
+//        uint16_t cnt=m_port->rx_burst(m_rx_queue_id,rx_pkts,nb_pkts);
+//        return (cnt);
+        return 0;
     }
 
 
@@ -2337,7 +2353,7 @@ public:
     }
 
     virtual int tx(rte_mbuf_t * m){
-        if ( likely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
+        if ( odp_likely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
              /* vlan mode is the default */
              /* set the vlan */
              m->ol_flags = PKT_TX_VLAN_PKT;
@@ -2718,15 +2734,12 @@ public:
 
     bool Create();
     void Delete();
-
     int  ixgbe_prob_init();
     int  cores_prob_init();
     int  queues_prob_init();
     int  ixgbe_start();
     int  ixgbe_rx_queue_flush();
     int  ixgbe_configure_mg();
-
-
     bool is_all_links_are_up(bool dump=false);
     int  set_promisc_all(bool enable);
 
@@ -2868,7 +2881,7 @@ public:
     CFlowGenList  m_fl;
     bool          m_fl_was_init;
 
-    volatile uint8_t       m_signal[BP_MAX_CORES] __rte_cache_aligned ;
+    volatile uint8_t       m_signal[BP_MAX_CORES] ODP_ALIGNED_CACHE ;
 
     CLatencyManager     m_mg;
     CTrexGlobalIoMode   m_io_modes;
@@ -3063,7 +3076,7 @@ int CGlobalTRex::create_pkt(uint8_t *pkt,int pkt_size){
     rte_mempool_t * mp= CGlobalInfo::m_mem_pool[0].m_big_mbuf_pool ;
 
     rte_mbuf_t * m=rte_pktmbuf_alloc(mp);
-    if ( unlikely(m==0) )  {
+    if ( odp_unlikely(m==0) )  {
         printf("ERROR no packets \n");
         return (0);
     }
@@ -3104,7 +3117,7 @@ int CGlobalTRex::test_send_pkts(uint16_t queue_id,
         rte_mbuf_refcnt_update(m_test,1);
         tx_pkts[i]=m_test;
     }
-    uint16_t res=lp->tx_burst(queue_id,tx_pkts,pkt);
+    uint16_t res=lp->tx_burst(tx_pkts,pkt);
     if ((pkt-res)>0) {
         m_test_drop+=(pkt-res);
     }
@@ -3150,7 +3163,7 @@ CGlobalTRex::check_for_dp_message_from_core(int thread_id) {
     CNodeRing *ring = CMsgIns::Ins()->getCpDp()->getRingDpToCp(thread_id);
 
     /* fast path check */
-    if ( likely ( ring->isEmpty() ) ) {
+    if ( odp_likely ( ring->isEmpty() ) ) {
         return;
     }
 
@@ -3181,20 +3194,21 @@ CGlobalTRex::check_for_dp_messages() {
 }
 
 bool CGlobalTRex::is_all_links_are_up(bool dump){
-    bool all_link_are=true;
-    int i;
-    for (i=0; i<m_max_ports; i++) {
-        CPhyEthIF * _if=&m_ports[i];
-        _if->update_link_status();
-        if ( dump ){
-            _if->dump_stats(stdout);
-        }
-        if ( _if->is_link_up() == false){
-            all_link_are=false;
-            break;
-        }
-    }
-    return (all_link_are);
+    return true;
+//    bool all_link_are=true;
+//    int i;
+//    for (i=0; i<m_max_ports; i++) {
+//        CPhyEthIF * _if=&m_ports[i];
+//        _if->update_link_status();
+//        if ( dump ){
+//            _if->dump_stats(stdout);
+//        }
+//        if ( _if->is_link_up() == false){
+//            all_link_are=false;
+//            break;
+//        }
+//    }
+//    return (all_link_are);
 }
 
 
@@ -3298,10 +3312,11 @@ int  CGlobalTRex::ixgbe_start(void){
         /* last TX queue if for latency check */
         if ( get_vm_one_queue_enable() ) {
             /* one tx one rx */
-            _if->configure(1,
-                           1,
-                           &m_port_cfg.m_port_conf);
-
+//            _if->configure(1,
+//                           1,
+//                           &m_port_cfg.m_port_conf);
+//
+            _if->configure();
             /* will not be used */
             m_latency_tx_queue_id= m_cores_to_dual_ports;
 
@@ -3310,59 +3325,64 @@ int  CGlobalTRex::ixgbe_start(void){
 
 
 
-            _if->set_rx_queue(0);
-            _if->rx_queue_setup(0,
-                                RTE_TEST_RX_DESC_VM_DEFAULT,
-                                socket_id, 
-                                &m_port_cfg.m_rx_conf,
-                                CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool);
+            //_if->set_rx_queue(0);
+            _if->create_pktio(
+                    CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool->odp_buffer_pool);
+//            _if->rx_queue_setup(0,
+//                                RTE_TEST_RX_DESC_VM_DEFAULT,
+//                                socket_id, 
+//                                &m_port_cfg.m_rx_conf,
+//                                CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool);
 
-            int qid;
-            for ( qid=0; qid<(m_max_queues_per_port); qid++) {
-                _if->tx_queue_setup((uint16_t)qid,
-                                    RTE_TEST_TX_DESC_VM_DEFAULT ,
-                                    socket_id, 
-                                    &m_port_cfg.m_tx_conf);
-
-            }
+//            int qid;
+//            for ( qid=0; qid<(m_max_queues_per_port); qid++) {
+//                _if->tx_queue_setup((uint16_t)qid,
+//                                    RTE_TEST_TX_DESC_VM_DEFAULT ,
+//                                    socket_id, 
+//                                    &m_port_cfg.m_tx_conf);
+//
+//            }
 
         }else{
-            _if->configure(2,
-                          m_cores_to_dual_ports+1,
-                          &m_port_cfg.m_port_conf);
-
+            _if->configure();
+//            _if->configure(2,
+//                          m_cores_to_dual_ports+1,
+//                          &m_port_cfg.m_port_conf);
+//
             /* the latency queue for latency measurement packets */
             m_latency_tx_queue_id= m_cores_to_dual_ports;
 
             socket_id_t socket_id = CGlobalInfo::m_socket.port_to_socket((port_id_t)i);
             assert(CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool);
 
+            _if->create_pktio(
+                    CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool->odp_buffer_pool);
 
-            /* drop queue */
-            _if->rx_queue_setup(0,
-                                RTE_TEST_RX_DESC_DEFAULT,
-                                socket_id, 
-                                &m_port_cfg.m_rx_conf,
-                                CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool);
-
-
-            /* set the filter queue */
-            _if->set_rx_queue(1);
-            /* latency measurement ring is 1 */
-            _if->rx_queue_setup(1,
-                                RTE_TEST_RX_LATENCY_DESC_DEFAULT,
-                                socket_id, 
-                                &m_port_cfg.m_rx_conf,
-                                CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool);
-
-            int qid;
-            for ( qid=0; qid<(m_max_queues_per_port+1); qid++) {
-                _if->tx_queue_setup((uint16_t)qid,
-                                    RTE_TEST_TX_DESC_DEFAULT ,
-                                    socket_id, 
-                                    &m_port_cfg.m_tx_conf);
-
-            }
+//            /* drop queue */
+//            _if->rx_queue_setup(0,
+//                                RTE_TEST_RX_DESC_DEFAULT,
+//                                socket_id, 
+//                                &m_port_cfg.m_rx_conf,
+//                                CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool);
+//
+//
+//            /* set the filter queue */
+//            _if->set_rx_queue(1);
+//            /* latency measurement ring is 1 */
+//            _if->rx_queue_setup(1,
+//                                RTE_TEST_RX_LATENCY_DESC_DEFAULT,
+//                                socket_id, 
+//                                &m_port_cfg.m_rx_conf,
+//                                CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool);
+//
+//            int qid;
+//            for ( qid=0; qid<(m_max_queues_per_port+1); qid++) {
+//                _if->tx_queue_setup((uint16_t)qid,
+//                                    RTE_TEST_TX_DESC_DEFAULT ,
+//                                    socket_id, 
+//                                    &m_port_cfg.m_tx_conf);
+//
+//            }
 
         }
 
@@ -3370,31 +3390,43 @@ int  CGlobalTRex::ixgbe_start(void){
         _if->stats_clear();
 
         _if->start();
-        _if->configure_rx_drop_queue();
-        _if->configure_rx_duplicate_rules();
+//        _if->configure_rx_drop_queue();
+//        _if->configure_rx_duplicate_rules();
+//
+//        _if->disable_flow_control();
 
-        _if->disable_flow_control();
+        /* FIXME: 
+         * currently, ODP has no API to get link status
+         */
+//        _if->update_link_status();
 
-        _if->update_link_status();
-
-        _if->dump_link(stdout);
-        
-        _if->add_mac((char *)CGlobalInfo::m_options.get_src_mac_addr(i));
-
+//        _if->dump_link(stdout);
+        /* FIXME:
+         * ODP has no API to add white mac list,
+         * as a workaround, I set the NIC to promisc mode
+         */
+//        _if->add_mac((char *)CGlobalInfo::m_options.get_src_mac_addr(i));
+        _if->set_promiscuous(true);
         fflush(stdout);
     }
+    /* FIXME:
+     * ODP has no link status API
+     */
+//    if ( !is_all_links_are_up()  ){
+//        /* wait for ports to be stable */
+//        get_ex_drv()->wait_for_stable_link();
+//
+//        if ( !is_all_links_are_up(true) ){
+//            rte_exit(EXIT_FAILURE, " "
+//                    " one of the link is down \n");
+//        }
+//    }
 
-    if ( !is_all_links_are_up()  ){
-        /* wait for ports to be stable */
-        get_ex_drv()->wait_for_stable_link();
-
-        if ( !is_all_links_are_up(true) ){
-            rte_exit(EXIT_FAILURE, " "
-                    " one of the link is down \n");
-        }
-    }
-
-    ixgbe_rx_queue_flush();
+    /* FIXME: 
+     * no rx-check support currently
+     * no need to rx packets
+     */
+//    ixgbe_rx_queue_flush();
 
 
     ixgbe_configure_mg();
@@ -3511,40 +3543,49 @@ void CGlobalTRex::Delete(){
     m_zmq_publisher.Delete();
 }
 
+odp_pktio_t CPhyEthIF::create_pktio(odp_pool_t pool) {
+    odp_pktio_t pktio;
+    odp_pktio_param_t pktio_param;
+    odp_pktio_param_init(&pktio_param);
 
+    pktio_param.in_mode = ODP_PKTIN_MODE_DISABLED;
+    pktio_param.out_mode = ODP_PKTOUT_MODE_SEND;
+
+    pktio = odp_pktio_open((char*)&m_port_id, pool, &pktio_param);
+    if (pktio == ODP_PKTIO_INVALID) {
+        pktio = odp_pktio_lookup((char*)&m_port_id);
+    }
+    assert(pktio!=ODP_PKTIO_INVALID);
+    m_pkt_io = pktio;
+    return pktio;
+}
 
 int  CGlobalTRex::ixgbe_prob_init(void){
 
-	m_max_ports  = rte_eth_dev_count();
+    /*FIXME: ODP has not API to support rte_eth_dev_count*/
+    /*
+    m_max_ports  = rte_eth_dev_count();
 	if (m_max_ports == 0)
 		rte_exit(EXIT_FAILURE, "No Ethernet ports - bye\n");
 
     printf(" number of ports founded : %d \n",m_max_ports);
-
+    */
 
 
     if ( CGlobalInfo::m_options.get_expected_ports() >BP_MAX_PORTS ){
         rte_exit(EXIT_FAILURE, " maximum ports supported are %d, use the configuration file to set the expected number of ports   \n",BP_MAX_PORTS);
     }
-
-    if ( CGlobalInfo::m_options.get_expected_ports() > m_max_ports ){
-        rte_exit(EXIT_FAILURE, " there are %d ports you expected more %d,use the configuration file to set the expected number of ports   \n",
-                 m_max_ports,
-                 CGlobalInfo::m_options.get_expected_ports());
-    }
-    if (CGlobalInfo::m_options.get_expected_ports() < m_max_ports ) {
-        /* limit the number of ports */
-        m_max_ports=CGlobalInfo::m_options.get_expected_ports();
-    }
+    m_max_ports = CGlobalInfo::m_options.get_expected_ports();
     assert(m_max_ports <= BP_MAX_PORTS);
 
     if ( m_max_ports %2 !=0 ) {
-        rte_exit(EXIT_FAILURE, " numbe of ports %d should be even, mask the one port in the configuration file  \n, ",
+        printf(" numbe of ports %d should be even, mask the one port in the configuration file  \n, ",
                  m_max_ports);
-
+        exit(1);
     }
 
-    struct rte_eth_dev_info dev_info;
+    /*FIXME: how can we remove it*/
+/*    struct rte_eth_dev_info dev_info;
     rte_eth_dev_info_get((uint8_t) 0,&dev_info);
 
     if ( CGlobalInfo::m_options.preview.getVMode() > 0){
@@ -3579,11 +3620,10 @@ int  CGlobalTRex::ixgbe_prob_init(void){
     }
 
     CTRexExtendedDriverDb::Ins()->set_driver_name(dev_info.driver_name);
-
+*/
     /* register driver callback to convert mseg to signle seg */
-    if (strcmp(dev_info.driver_name,"rte_vmxnet3_pmd")==0 ) {
-        vmxnet3_xmit_set_callback(rte_mbuf_convert_to_one_seg);
-    }
+/*   if (strcmp(dev_info.driver_name,"rte_vmxnet3_pmd")==0 ) {
+        vmxnet3_xmit_set_callback(rte_mbuf_convert_to_one_seg);    }
 
 
     m_port_cfg.update_var();
@@ -3591,7 +3631,7 @@ int  CGlobalTRex::ixgbe_prob_init(void){
     if ( get_is_rx_filter_enable() ){
         m_port_cfg.update_global_config_fdir();
     }
-
+*/
     if ( get_vm_one_queue_enable() ) {
         /* verify that we have only one thread/core per dual- interface */
         if ( CGlobalInfo::m_options.preview.getCores()>1 ) {
@@ -3603,7 +3643,7 @@ int  CGlobalTRex::ixgbe_prob_init(void){
 }
 
 int  CGlobalTRex::cores_prob_init(){
-    m_max_cores = rte_lcore_count();
+    m_max_cores = odp_cpu_count();
     assert(m_max_cores>0);
     return (0);
 }
@@ -3640,8 +3680,9 @@ int  CGlobalTRex::queues_prob_init(){
     m_max_queues_per_port  = m_cores_to_dual_ports;
 
     if (m_max_queues_per_port > BP_MAX_TX_QUEUE) {
-        rte_exit(EXIT_FAILURE, 
+       printf( 
          "maximum number of queue should be maximum %d  \n",BP_MAX_TX_QUEUE);
+        exit(1);
     }
     
     assert(m_max_queues_per_port>0);
@@ -4352,50 +4393,59 @@ TrexStateless * get_stateless_obj() {
     return g_trex.m_trex_stateless;
 }
 
-static int latency_one_lcore(__attribute__((unused)) void *dummy)
-{
-    CPlatformSocketInfo * lpsock=&CGlobalInfo::m_socket;
-    physical_thread_id_t  phy_id =rte_lcore_id();
+//static int latency_one_lcore(__attribute__((unused)) void *dummy)
+//{
+//    CPlatformSocketInfo * lpsock=&CGlobalInfo::m_socket;
+//    physical_thread_id_t  phy_id =odp_cpu_id();
+//
+//
+//    if ( lpsock->thread_phy_is_latency( phy_id )  ){
+//        g_trex.run_in_laterncy_core();
+//    }else{
+//
+//        if ( lpsock->thread_phy_is_master( phy_id ) ) {
+//            g_trex.run_in_master();
+//            delay(1);
+//        }else{
+//            delay((uint32_t)(1000.0*CGlobalInfo::m_options.m_duration));
+//            /* this core has stopped */
+//            g_trex.m_signal[ lpsock->thread_phy_to_virt( phy_id ) ]=1;
+//        }
+//    }
+//	return 0;
+//}
+//
 
+//
+//static int slave_one_lcore(__attribute__((unused)) void *dummy)
+//{
+//    CPlatformSocketInfo * lpsock=&CGlobalInfo::m_socket;
+//    physical_thread_id_t  phy_id =odp_cpu_id();
+//
+//
+//    if ( lpsock->thread_phy_is_latency( phy_id )  ){
+//        g_trex.run_in_laterncy_core();
+//    }else{
+//        if ( lpsock->thread_phy_is_master( phy_id ) ) {
+//            g_trex.run_in_master();
+//            delay(1);
+//        }else{
+//            g_trex.run_in_core( lpsock->thread_phy_to_virt( phy_id ) );
+//        }
+//    }
+//	return 0;
+//}
+//
+typedef struct tx_worker_args_ {
+    virtual_thread_id_t virt_core_id;
+    int                 ret;
+} tx_worker_args_t;
 
-    if ( lpsock->thread_phy_is_latency( phy_id )  ){
-        g_trex.run_in_laterncy_core();
-    }else{
-
-        if ( lpsock->thread_phy_is_master( phy_id ) ) {
-            g_trex.run_in_master();
-            delay(1);
-        }else{
-            delay((uint32_t)(1000.0*CGlobalInfo::m_options.m_duration));
-            /* this core has stopped */
-            g_trex.m_signal[ lpsock->thread_phy_to_virt( phy_id ) ]=1;
-        }
-    }
-	return 0;
+void* tx_worker_thread(void * args) {
+    tx_worker_args_t *tx_args = (tx_worker_args_t*) args;
+    tx_args->ret = g_trex.run_in_core(tx_args->virt_core_id);
+    return (void*)tx_args;
 }
-
-
-
-static int slave_one_lcore(__attribute__((unused)) void *dummy)
-{
-    CPlatformSocketInfo * lpsock=&CGlobalInfo::m_socket;
-    physical_thread_id_t  phy_id =rte_lcore_id();
-
-
-    if ( lpsock->thread_phy_is_latency( phy_id )  ){
-        g_trex.run_in_laterncy_core();
-    }else{
-        if ( lpsock->thread_phy_is_master( phy_id ) ) {
-            g_trex.run_in_master();
-            delay(1);
-        }else{
-            g_trex.run_in_core( lpsock->thread_phy_to_virt( phy_id ) );
-        }
-    }
-	return 0;
-}
-
-
 
 uint32_t get_cores_mask(uint32_t cores,int offset){
     int i;
@@ -4498,25 +4548,20 @@ int  update_dpdk_args(void){
     sprintf(global_cores_str,"0x%llx",(unsigned long long)lpsock->get_cores_mask());
 
     /* set the DPDK options */
-    global_dpdk_args_num =7;
-
-    global_dpdk_args[0]=(char *)"xx";
-    global_dpdk_args[1]=(char *)"-c";
-    global_dpdk_args[2]=(char *)global_cores_str;
-    global_dpdk_args[3]=(char *)"-n";
-    global_dpdk_args[4]=(char *)"4";
+    global_dpdk_args[0]=(char *)"-n";
+    global_dpdk_args[1]=(char *)"4";
 
     if ( CGlobalInfo::m_options.preview.getVMode() == 0  ) {
-        global_dpdk_args[5]=(char *)"--log-level";
+        global_dpdk_args[2]=(char *)"--log-level";
         sprintf(global_loglevel_str,"%d",1);
-        global_dpdk_args[6]=(char *)global_loglevel_str;
+        global_dpdk_args[3]=(char *)global_loglevel_str;
     }else{
-        global_dpdk_args[5]=(char *)"--log-level";
+        global_dpdk_args[2]=(char *)"--log-level";
         sprintf(global_loglevel_str,"%d",CGlobalInfo::m_options.preview.getVMode()+1);
-        global_dpdk_args[6]=(char *)global_loglevel_str;
+        global_dpdk_args[3]=(char *)global_loglevel_str;
     }
 
-    global_dpdk_args_num = 7;
+    global_dpdk_args_num = 4;
 
     /* add white list */
     for (int i=0; i<(int)global_platform_cfg_info.m_if_list.size(); i++) {
@@ -4546,6 +4591,19 @@ int  update_dpdk_args(void){
             printf(" %s \n",global_dpdk_args[i]);
         }
     }
+
+    int args_line_len = 0;   
+    int i; 
+    for (i=0; i<global_dpdk_args_num; i++) {
+        args_line_len += strlen(global_dpdk_args[i]) + strlen(" ");
+    }
+    global_dpdk_args_line = (char*)calloc(1, args_line_len);
+    int len = 0;
+    for (i=0; i<global_dpdk_args_num; i++) {
+        sprintf(global_dpdk_args_line+len, "%s ",global_dpdk_args[i]);
+        len += strlen(global_dpdk_args[i])+1;
+    }
+    printf(" args in line: \n%s\n", global_dpdk_args_line);
     return (0);
 }
 
@@ -4584,8 +4642,6 @@ int main_test(int argc , char * argv[]){
 
     utl_termio_init();
 
-    int ret;
-    unsigned lcore_id;
     printf("Starting  TRex %s please wait  ... \n",VERSION_BUILD_NUM);
 
     CGlobalInfo::m_options.preview.clean();
@@ -4611,7 +4667,8 @@ int main_test(int argc , char * argv[]){
 
 
     if ( CGlobalInfo::m_options.preview.getVMode() == 0  ) {
-        rte_set_log_level(1);
+        // Verbose mode is enabled
+        //rte_set_log_level(1);
 
     }
     uid_t uid; 
@@ -4623,14 +4680,17 @@ int main_test(int argc , char * argv[]){
         return (-1);
     }
 
-
-
-    ret = rte_eal_init(global_dpdk_args_num, (char **)global_dpdk_args);
-    if (ret < 0){
+    if (odp_init_global(NULL, (odp_platform_init_t*)global_dpdk_args_line)) {
         printf(" You might need to run ./trex-cfg  once  \n");
-        rte_exit(EXIT_FAILURE, "Invalid EAL arguments\n");
+        printf("Error: ODP global init failed.\n");
+        exit(1);
     }
 
+    if (odp_init_local(ODP_THREAD_CONTROL)) {
+        printf("Error: ODP local init failed.\n");
+        exit(1);
+    } 
+     
     time_init();
     
         /* check if we are in simulation mode */
@@ -4680,16 +4740,16 @@ int main_test(int argc , char * argv[]){
     }
 	#endif
 
-    if ( CGlobalInfo::m_options.preview.getOnlyLatency() ){
-        rte_eal_mp_remote_launch(latency_one_lcore, NULL, CALL_MASTER);
-        RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-            if (rte_eal_wait_lcore(lcore_id) < 0)
-                return -1;
-        }
-        g_trex.stop_master();
-
-        return (0);
-    }
+//    if ( CGlobalInfo::m_options.preview.getOnlyLatency() ){
+//        rte_eal_mp_remote_launch(latency_one_lcore, NULL, CALL_MASTER);
+//        RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+//            if (rte_eal_wait_lcore(lcore_id) < 0)
+//                return -1;
+//        }
+//        g_trex.stop_master();
+//
+//        return (0);
+//    }
 
     if ( CGlobalInfo::m_options.preview.getSingleCore() ) {
         g_trex.run_in_core(1);
@@ -4697,12 +4757,38 @@ int main_test(int argc , char * argv[]){
         return (0);
     }
 
-    rte_eal_mp_remote_launch(slave_one_lcore, NULL, CALL_MASTER);
-    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-        if (rte_eal_wait_lcore(lcore_id) < 0)
-            return -1;
-    }
+    CPlatformSocketInfo * lpsock=&CGlobalInfo::m_socket;
+    uint8_t req_num_workers = lpsock->get_cores_num()-1;
+    uint8_t avail_num_workers = 0;
+    odp_cpumask_t cpumask;
+    int cpu;
 
+    odph_linux_pthread_t thread_tbl[req_num_workers];
+    tx_worker_args_t  args[req_num_workers];
+    avail_num_workers = odp_cpumask_default_worker(&cpumask, req_num_workers); 
+
+    if (avail_num_workers<req_num_workers) {
+        printf("cannot reserved enough number of worker threads, "
+                  "required workers: %d, available workers:%d\n",
+                  req_num_workers, avail_num_workers);
+        exit(1);
+    } 
+    memset(thread_tbl, 0, sizeof(thread_tbl));
+    cpu = odp_cpumask_first(&cpumask);
+    for (int i=0; i<req_num_workers; i++) {
+        odp_cpumask_t thd_mask;
+        odp_cpumask_zero(&thd_mask);
+        odp_cpumask_set(&thd_mask, cpu);
+        args[i].virt_core_id = lpsock->thread_phy_to_virt(cpu);
+        odph_linux_pthread_create(&thread_tbl[i], &thd_mask,
+                                  tx_worker_thread,
+                                  &args[i],
+                                  ODP_THREAD_WORKER);
+        cpu = odp_cpumask_next(&cpumask, cpu);
+        delay(1);
+    }
+    g_trex.run_in_master();
+    odph_linux_pthread_join(thread_tbl, avail_num_workers);
     g_trex.stop_master();
     g_trex.Delete();
     utl_termio_reset();
@@ -4731,111 +4817,111 @@ int CTRexExtendedDriverBase1G::wait_for_stable_link(){
 }
 
 int CTRexExtendedDriverBase1G::configure_drop_queue(CPhyEthIF * _if){
-    uint8_t protocol;
-    if (CGlobalInfo::m_options.m_l_pkt_mode == 0) {
-        protocol = IPPROTO_SCTP;
-    } else {
-        protocol = IPPROTO_ICMP;
-    }
-
-    _if->pci_reg_write( E1000_RXDCTL(0) , 0);
-
-    /* enable filter to pass packet to rx queue 1 */
-    _if->pci_reg_write( E1000_IMIR(0), 0x00020000);
-    _if->pci_reg_write( E1000_IMIREXT(0), 0x00081000);
-    _if->pci_reg_write( E1000_TTQF(0),   protocol
-                                  | 0x00008100 /* enable */
-                                  | 0xE0010000 /* RX queue is 1 */
-                                    );
+//    uint8_t protocol;
+//    if (CGlobalInfo::m_options.m_l_pkt_mode == 0) {
+//        protocol = IPPROTO_SCTP;
+//    } else {
+//        protocol = IPPROTO_ICMP;
+//    }
+//
+//    _if->pci_reg_write( E1000_RXDCTL(0) , 0);
+//
+//    /* enable filter to pass packet to rx queue 1 */
+//    _if->pci_reg_write( E1000_IMIR(0), 0x00020000);
+//    _if->pci_reg_write( E1000_IMIREXT(0), 0x00081000);
+//    _if->pci_reg_write( E1000_TTQF(0),   protocol
+//                                  | 0x00008100 /* enable */
+//                                  | 0xE0010000 /* RX queue is 1 */
+//                                    );
     return (0);
 }
-
+//
 void CTRexExtendedDriverBase1G::update_configuration(port_cfg_t * cfg){
-
-        cfg->m_tx_conf.tx_thresh.pthresh = TX_PTHRESH_1G;
-        cfg->m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
-        cfg->m_tx_conf.tx_thresh.wthresh = 0;
+//
+//        cfg->m_tx_conf.tx_thresh.pthresh = TX_PTHRESH_1G;
+//        cfg->m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
+//        cfg->m_tx_conf.tx_thresh.wthresh = 0;
 }
-
+//
 void CTRexExtendedDriverBase1G::update_global_config_fdir(port_cfg_t * cfg){
-    cfg->update_global_config_fdir_10g_1g();
+//    cfg->update_global_config_fdir_10g_1g();
 }
-
+//
 int CTRexExtendedDriverBase1G::configure_rx_filter_rules(CPhyEthIF * _if){
-
-    uint16_t hops = get_rx_check_hops();
-    uint16_t v4_hops = (hops << 8)&0xff00; 
-
-        /* 16  :   12 MAC , (2)0x0800,2      | DW0 , DW1
-                   6 bytes , TTL , PROTO     | DW2=0 , DW3=0x0000FF06
-        */
-        int i;
-        // IPv4: bytes being compared are {TTL, Protocol}
-        uint16_t ff_rules_v4[6]={
-            (uint16_t)(0xFF06 - v4_hops),
-            (uint16_t)(0xFE11 - v4_hops),
-            (uint16_t)(0xFF11 - v4_hops),
-            (uint16_t)(0xFE06 - v4_hops),
-            (uint16_t)(0xFF01 - v4_hops),
-            (uint16_t)(0xFE01 - v4_hops),
-        }  ;
-        // IPv6: bytes being compared are {NextHdr, HopLimit}
-        uint16_t ff_rules_v6[2]={
-            (uint16_t)(0x3CFF - hops),
-            (uint16_t)(0x3CFE - hops),
-        }  ;
-        uint16_t *ff_rules;
-        uint16_t num_rules;
-        uint32_t mask=0;
-        int  rule_id;
-
-        if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
-            ff_rules = &ff_rules_v6[0];
-            num_rules = sizeof(ff_rules_v6)/sizeof(ff_rules_v6[0]);
-        }else{
-            ff_rules = &ff_rules_v4[0];
-            num_rules = sizeof(ff_rules_v4)/sizeof(ff_rules_v4[0]);
-        }
-
-        uint8_t len = 24;
-        for (rule_id=0; rule_id<num_rules; rule_id++ ) {
-            /* clear rule all */
-            for (i=0; i<0xff; i+=4) {
-                _if->pci_reg_write( (E1000_FHFT(rule_id)+i) , 0);
-            }
-
-            if (  CGlobalInfo::m_options.preview.get_vlan_mode_enable() ){
-                len += 8;
-                if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
-                    // IPv6 VLAN: NextHdr/HopLimit offset = 0x18
-                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(3*16)+0) , PKT_NTOHS(ff_rules[rule_id]) );
-                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(3*16)+8) , 0x03); /* MASK */
-                }else{
-                    // IPv4 VLAN: TTL/Protocol offset = 0x1A
-                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(3*16)+0) , (PKT_NTOHS(ff_rules[rule_id])<<16) );
-                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(3*16)+8) , 0x0C); /* MASK */
-                }
-            }else{
-                if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
-                    // IPv6: NextHdr/HopLimit offset = 0x14
-                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(2*16)+4) , PKT_NTOHS(ff_rules[rule_id]) );
-                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(2*16)+8) , 0x30); /* MASK */
-                }else{
-                    // IPv4: TTL/Protocol offset = 0x16
-                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(2*16)+4) , (PKT_NTOHS(ff_rules[rule_id])<<16) );
-                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(2*16)+8) , 0xC0); /* MASK */
-                }
-            }
-
-            // FLEX_PRIO[[18:16] = 1, RQUEUE[10:8] = 1
-            _if->pci_reg_write( (E1000_FHFT(rule_id)+0xFC) , (1<<16) | (1<<8)  | len);
-
-            mask |=(1<<rule_id);
-        }
-
-        /* enable all rules */
-        _if->pci_reg_write(E1000_WUFC, (mask<<16) | (1<<14) );
-
+//
+//    uint16_t hops = get_rx_check_hops();
+//    uint16_t v4_hops = (hops << 8)&0xff00; 
+//
+//        /* 16  :   12 MAC , (2)0x0800,2      | DW0 , DW1
+//                   6 bytes , TTL , PROTO     | DW2=0 , DW3=0x0000FF06
+//        */
+//        int i;
+//        // IPv4: bytes being compared are {TTL, Protocol}
+//        uint16_t ff_rules_v4[6]={
+//            (uint16_t)(0xFF06 - v4_hops),
+//            (uint16_t)(0xFE11 - v4_hops),
+//            (uint16_t)(0xFF11 - v4_hops),
+//            (uint16_t)(0xFE06 - v4_hops),
+//            (uint16_t)(0xFF01 - v4_hops),
+//            (uint16_t)(0xFE01 - v4_hops),
+//        }  ;
+//        // IPv6: bytes being compared are {NextHdr, HopLimit}
+//        uint16_t ff_rules_v6[2]={
+//            (uint16_t)(0x3CFF - hops),
+//            (uint16_t)(0x3CFE - hops),
+//        }  ;
+//        uint16_t *ff_rules;
+//        uint16_t num_rules;
+//        uint32_t mask=0;
+//        int  rule_id;
+//
+//        if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
+//            ff_rules = &ff_rules_v6[0];
+//            num_rules = sizeof(ff_rules_v6)/sizeof(ff_rules_v6[0]);
+//        }else{
+//            ff_rules = &ff_rules_v4[0];
+//            num_rules = sizeof(ff_rules_v4)/sizeof(ff_rules_v4[0]);
+//        }
+//
+//        uint8_t len = 24;
+//        for (rule_id=0; rule_id<num_rules; rule_id++ ) {
+//            /* clear rule all */
+//            for (i=0; i<0xff; i+=4) {
+//                _if->pci_reg_write( (E1000_FHFT(rule_id)+i) , 0);
+//            }
+//
+//            if (  CGlobalInfo::m_options.preview.get_vlan_mode_enable() ){
+//                len += 8;
+//                if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
+//                    // IPv6 VLAN: NextHdr/HopLimit offset = 0x18
+//                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(3*16)+0) , PKT_NTOHS(ff_rules[rule_id]) );
+//                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(3*16)+8) , 0x03); /* MASK */
+//                }else{
+//                    // IPv4 VLAN: TTL/Protocol offset = 0x1A
+//                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(3*16)+0) , (PKT_NTOHS(ff_rules[rule_id])<<16) );
+//                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(3*16)+8) , 0x0C); /* MASK */
+//                }
+//            }else{
+//                if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
+//                    // IPv6: NextHdr/HopLimit offset = 0x14
+//                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(2*16)+4) , PKT_NTOHS(ff_rules[rule_id]) );
+//                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(2*16)+8) , 0x30); /* MASK */
+//                }else{
+//                    // IPv4: TTL/Protocol offset = 0x16
+//                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(2*16)+4) , (PKT_NTOHS(ff_rules[rule_id])<<16) );
+//                    _if->pci_reg_write( (E1000_FHFT(rule_id)+(2*16)+8) , 0xC0); /* MASK */
+//                }
+//            }
+//
+//            // FLEX_PRIO[[18:16] = 1, RQUEUE[10:8] = 1
+//            _if->pci_reg_write( (E1000_FHFT(rule_id)+0xFC) , (1<<16) | (1<<8)  | len);
+//
+//            mask |=(1<<rule_id);
+//        }
+//
+//        /* enable all rules */
+//        _if->pci_reg_write(E1000_WUFC, (mask<<16) | (1<<14) );
+//
         return (0);
 }
 
@@ -4888,110 +4974,110 @@ void CTRexExtendedDriverBase10G::clear_extended_stats(CPhyEthIF * _if){
 }
 
 void CTRexExtendedDriverBase10G::update_global_config_fdir(port_cfg_t * cfg){
-    cfg->update_global_config_fdir_10g_1g();
+//    cfg->update_global_config_fdir_10g_1g();
 }
 
 void CTRexExtendedDriverBase10G::update_configuration(port_cfg_t * cfg){
-    cfg->m_tx_conf.tx_thresh.pthresh = TX_PTHRESH;
-    cfg->m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
-    cfg->m_tx_conf.tx_thresh.wthresh = TX_WTHRESH;
+//    cfg->m_tx_conf.tx_thresh.pthresh = TX_PTHRESH;
+//    cfg->m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
+//    cfg->m_tx_conf.tx_thresh.wthresh = TX_WTHRESH;
 }
-
+//
 int CTRexExtendedDriverBase10G::configure_rx_filter_rules(CPhyEthIF * _if){
-        /* 10Gb/sec 82599 */
-        uint8_t port_id=_if->get_rte_port_id();
-
-        uint16_t hops = get_rx_check_hops();
-        uint16_t v4_hops = (hops << 8)&0xff00; 
-
-
-      /* set the mask only for flex-data */
-        rte_fdir_masks fdir_mask;
-        memset(&fdir_mask,0,sizeof(rte_fdir_masks));
-        fdir_mask.flexbytes=1;
-        //fdir_mask.dst_port_mask=0xffff; /* enable of 
-        int res;
-        res=rte_eth_dev_fdir_set_masks(port_id,&fdir_mask);
-        if (res!=0) {
-             rte_exit(EXIT_FAILURE, " ERROR rte_eth_dev_fdir_set_masks : %d \n",res);
-        }
-
-
-        // IPv4: bytes being compared are {TTL, Protocol}
-        uint16_t ff_rules_v4[6]={
-            (uint16_t)(0xFF11 - v4_hops),
-            (uint16_t)(0xFE11 - v4_hops),
-            (uint16_t)(0xFF06 - v4_hops),
-            (uint16_t)(0xFE06 - v4_hops),
-            (uint16_t)(0xFF01 - v4_hops),
-            (uint16_t)(0xFE01 - v4_hops),
-        }  ;
-        // IPv6: bytes being compared are {NextHdr, HopLimit}
-        uint16_t ff_rules_v6[6]={
-            (uint16_t)(0x3CFF - hops),
-            (uint16_t)(0x3CFE - hops),
-            (uint16_t)(0x3CFF - hops),
-            (uint16_t)(0x3CFE - hops),
-            (uint16_t)(0x3CFF - hops),
-            (uint16_t)(0x3CFE - hops),
-        }  ;
-        const rte_l4type ff_rules_type[6]={
-            RTE_FDIR_L4TYPE_UDP,
-            RTE_FDIR_L4TYPE_UDP,
-            RTE_FDIR_L4TYPE_TCP,
-            RTE_FDIR_L4TYPE_TCP,
-            RTE_FDIR_L4TYPE_NONE,
-            RTE_FDIR_L4TYPE_NONE
-        }  ;
-
-        uint16_t *ff_rules;
-        uint16_t num_rules;
-        int  rule_id;
-
-        assert (sizeof(ff_rules_v4) == sizeof(ff_rules_v6));
-        num_rules = sizeof(ff_rules_v4)/sizeof(ff_rules_v4[0]);
-        if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
-            ff_rules = &ff_rules_v6[0];
-        }else{
-            ff_rules = &ff_rules_v4[0];
-        }
-
-        for (rule_id=0; rule_id<num_rules; rule_id++ ) {
-    
-            rte_fdir_filter fdir_filter;
-            uint16_t ff_rule = ff_rules[rule_id];
-            memset(&fdir_filter,0,sizeof(rte_fdir_filter));
-            /* TOS/PROTO */
-            if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
-                fdir_filter.iptype = RTE_FDIR_IPTYPE_IPV6;
-            }else{
-                fdir_filter.iptype = RTE_FDIR_IPTYPE_IPV4;
-            }
-            fdir_filter.flex_bytes = PKT_NTOHS(ff_rule);
-            fdir_filter.l4type = ff_rules_type[rule_id];
-    
-            res=rte_eth_dev_fdir_add_perfect_filter(port_id,
-                                                    &fdir_filter,
-                                                    rule_id, 1,0);
-            if (res!=0) {
-                 rte_exit(EXIT_FAILURE, " ERROR rte_eth_dev_fdir_add_perfect_filter : %d\n",res);
-            }
-        }
+//        /* 10Gb/sec 82599 */
+//        uint8_t port_id=_if->get_rte_port_id();
+//
+//        uint16_t hops = get_rx_check_hops();
+//        uint16_t v4_hops = (hops << 8)&0xff00; 
+//
+//
+//      /* set the mask only for flex-data */
+//        rte_fdir_masks fdir_mask;
+//        memset(&fdir_mask,0,sizeof(rte_fdir_masks));
+//        fdir_mask.flexbytes=1;
+//        //fdir_mask.dst_port_mask=0xffff; /* enable of 
+//        int res;
+//        res=rte_eth_dev_fdir_set_masks(port_id,&fdir_mask);
+//        if (res!=0) {
+//             rte_exit(EXIT_FAILURE, " ERROR rte_eth_dev_fdir_set_masks : %d \n",res);
+//        }
+//
+//
+//        // IPv4: bytes being compared are {TTL, Protocol}
+//        uint16_t ff_rules_v4[6]={
+//            (uint16_t)(0xFF11 - v4_hops),
+//            (uint16_t)(0xFE11 - v4_hops),
+//            (uint16_t)(0xFF06 - v4_hops),
+//            (uint16_t)(0xFE06 - v4_hops),
+//            (uint16_t)(0xFF01 - v4_hops),
+//            (uint16_t)(0xFE01 - v4_hops),
+//        }  ;
+//        // IPv6: bytes being compared are {NextHdr, HopLimit}
+//        uint16_t ff_rules_v6[6]={
+//            (uint16_t)(0x3CFF - hops),
+//            (uint16_t)(0x3CFE - hops),
+//            (uint16_t)(0x3CFF - hops),
+//            (uint16_t)(0x3CFE - hops),
+//            (uint16_t)(0x3CFF - hops),
+//            (uint16_t)(0x3CFE - hops),
+//        }  ;
+//        const rte_l4type ff_rules_type[6]={
+//            RTE_FDIR_L4TYPE_UDP,
+//            RTE_FDIR_L4TYPE_UDP,
+//            RTE_FDIR_L4TYPE_TCP,
+//            RTE_FDIR_L4TYPE_TCP,
+//            RTE_FDIR_L4TYPE_NONE,
+//            RTE_FDIR_L4TYPE_NONE
+//        }  ;
+//
+//        uint16_t *ff_rules;
+//        uint16_t num_rules;
+//        int  rule_id;
+//
+//        assert (sizeof(ff_rules_v4) == sizeof(ff_rules_v6));
+//        num_rules = sizeof(ff_rules_v4)/sizeof(ff_rules_v4[0]);
+//        if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
+//            ff_rules = &ff_rules_v6[0];
+//        }else{
+//            ff_rules = &ff_rules_v4[0];
+//        }
+//
+//        for (rule_id=0; rule_id<num_rules; rule_id++ ) {
+//    
+//            rte_fdir_filter fdir_filter;
+//            uint16_t ff_rule = ff_rules[rule_id];
+//            memset(&fdir_filter,0,sizeof(rte_fdir_filter));
+//            /* TOS/PROTO */
+//            if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
+//                fdir_filter.iptype = RTE_FDIR_IPTYPE_IPV6;
+//            }else{
+//                fdir_filter.iptype = RTE_FDIR_IPTYPE_IPV4;
+//            }
+//            fdir_filter.flex_bytes = PKT_NTOHS(ff_rule);
+//            fdir_filter.l4type = ff_rules_type[rule_id];
+//    
+//            res=rte_eth_dev_fdir_add_perfect_filter(port_id,
+//                                                    &fdir_filter,
+//                                                    rule_id, 1,0);
+//            if (res!=0) {
+//                 rte_exit(EXIT_FAILURE, " ERROR rte_eth_dev_fdir_add_perfect_filter : %d\n",res);
+//            }
+//        }
         return (0);
 }
 
 int CTRexExtendedDriverBase10G::configure_drop_queue(CPhyEthIF * _if){
-    /* enable rule 0 SCTP -> queue 1 for latency  */
-    /* 1<<21 means that queue 1 is for SCTP */
-    _if->pci_reg_write(IXGBE_L34T_IMIR(0),(1<<21));
-
-    _if->pci_reg_write(IXGBE_FTQF(0),
-                      IXGBE_FTQF_PROTOCOL_SCTP|
-                      (IXGBE_FTQF_PRIORITY_MASK<<IXGBE_FTQF_PRIORITY_SHIFT)|
-                      ((0x0f)<<IXGBE_FTQF_5TUPLE_MASK_SHIFT)|IXGBE_FTQF_QUEUE_ENABLE);
-
-    /* disable queue zero - default all traffic will go to here and will be dropped */
-    _if->pci_reg_write( IXGBE_RXDCTL(0) , 0);
+//    /* enable rule 0 SCTP -> queue 1 for latency  */
+//    /* 1<<21 means that queue 1 is for SCTP */
+//    _if->pci_reg_write(IXGBE_L34T_IMIR(0),(1<<21));
+//
+//    _if->pci_reg_write(IXGBE_FTQF(0),
+//                      IXGBE_FTQF_PROTOCOL_SCTP|
+//                      (IXGBE_FTQF_PRIORITY_MASK<<IXGBE_FTQF_PRIORITY_SHIFT)|
+//                      ((0x0f)<<IXGBE_FTQF_5TUPLE_MASK_SHIFT)|IXGBE_FTQF_QUEUE_ENABLE);
+//
+//    /* disable queue zero - default all traffic will go to here and will be dropped */
+//    _if->pci_reg_write( IXGBE_RXDCTL(0) , 0);
     return (0);
 }
 
@@ -5039,114 +5125,114 @@ int CTRexExtendedDriverBase10G::wait_for_stable_link(){
 
 void CTRexExtendedDriverBase40G::clear_extended_stats(CPhyEthIF * _if){
 
-    rte_eth_stats_reset(_if->get_port_id());
+//    rte_eth_stats_reset(_if->get_port_id());
 
 }
 
 void CTRexExtendedDriverBase40G::update_configuration(port_cfg_t * cfg){
-    cfg->m_tx_conf.tx_thresh.pthresh = TX_PTHRESH;
-    cfg->m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
-    cfg->m_tx_conf.tx_thresh.wthresh = TX_WTHRESH;
-    cfg->update_global_config_fdir_40g();
+//    cfg->m_tx_conf.tx_thresh.pthresh = TX_PTHRESH;
+//    cfg->m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
+//    cfg->m_tx_conf.tx_thresh.wthresh = TX_WTHRESH;
+//    cfg->update_global_config_fdir_40g();
 }
 
 
 /* Add rule to send packets with protocol 'type', and ttl 'ttl' to rx queue 1 */
-void CTRexExtendedDriverBase40G::add_rules(CPhyEthIF * _if,
-                                           enum rte_eth_flow_type type,
-                                           uint8_t ttl){
-    uint8_t port_id = _if->get_port_id();
-    int ret=rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_FDIR);
-
-    if (  ret !=0 ){
-        rte_exit(EXIT_FAILURE, "rte_eth_dev_filter_supported "
-                "err=%d, port=%u \n",
-              ret, port_id);
-    }
-
-    struct rte_eth_fdir_filter filter;
-
-    memset(&filter,0,sizeof(struct rte_eth_fdir_filter));
-
-    filter.action.rx_queue =1;
-    filter.action.behavior =RTE_ETH_FDIR_ACCEPT;
-    filter.action.report_status =RTE_ETH_FDIR_NO_REPORT_STATUS;
-    filter.soft_id=0;
-    
-    filter.input.flow_type = type;
-    filter.input.ttl=ttl;
-
-    if (type == RTE_ETH_FLOW_TYPE_IPV4_OTHER) {
-        filter.input.flow.ip4_flow.l4_proto = IPPROTO_ICMP; // In this case we want filter for icmp packets
-    }
-
-    /* We want to place latency packets in queue 1 */
-    ret=rte_eth_dev_filter_ctrl(port_id, RTE_ETH_FILTER_FDIR,
-                RTE_ETH_FILTER_ADD, (void*)&filter);
-
-    if (  ret !=0 ){
-        rte_exit(EXIT_FAILURE, "rte_eth_dev_filter_ctrl"
-                "err=%d, port=%u \n",
-              ret, port_id);
-    }
-}
-
+// void CTRexExtendedDriverBase40G::add_rules(CPhyEthIF * _if,
+//                                            enum rte_eth_flow_type type,
+//                                            uint8_t ttl){
+//     uint8_t port_id = _if->get_port_id();
+//     int ret=rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_FDIR);
+// 
+//     if (  ret !=0 ){
+//         rte_exit(EXIT_FAILURE, "rte_eth_dev_filter_supported "
+//                 "err=%d, port=%u \n",
+//               ret, port_id);
+//     }
+// 
+//     struct rte_eth_fdir_filter filter;
+// 
+//     memset(&filter,0,sizeof(struct rte_eth_fdir_filter));
+// 
+//     filter.action.rx_queue =1;
+//     filter.action.behavior =RTE_ETH_FDIR_ACCEPT;
+//     filter.action.report_status =RTE_ETH_FDIR_NO_REPORT_STATUS;
+//     filter.soft_id=0;
+//     
+//     filter.input.flow_type = type;
+//     filter.input.ttl=ttl;
+// 
+//     if (type == RTE_ETH_FLOW_TYPE_IPV4_OTHER) {
+//         filter.input.flow.ip4_flow.l4_proto = IPPROTO_ICMP; // In this case we want filter for icmp packets
+//     }
+// 
+//     /* We want to place latency packets in queue 1 */
+//     ret=rte_eth_dev_filter_ctrl(port_id, RTE_ETH_FILTER_FDIR,
+//                 RTE_ETH_FILTER_ADD, (void*)&filter);
+// 
+//     if (  ret !=0 ){
+//         rte_exit(EXIT_FAILURE, "rte_eth_dev_filter_ctrl"
+//                 "err=%d, port=%u \n",
+//               ret, port_id);
+//     }
+// }
+// 
 
 int CTRexExtendedDriverBase40G::configure_rx_filter_rules(CPhyEthIF * _if){
-    uint16_t hops = get_rx_check_hops();
-    int i;
-    for (i=0; i<2; i++) {
-        uint8_t ttl=0xff-i-hops;
-        add_rules(_if,RTE_ETH_FLOW_TYPE_UDPV4,ttl);
-        add_rules(_if,RTE_ETH_FLOW_TYPE_TCPV4,ttl);
-        add_rules(_if,RTE_ETH_FLOW_TYPE_UDPV6,ttl);
-        add_rules(_if,RTE_ETH_FLOW_TYPE_TCPV6,ttl);
-    }
-
+//    uint16_t hops = get_rx_check_hops();
+//    int i;
+//    for (i=0; i<2; i++) {
+//        uint8_t ttl=0xff-i-hops;
+//        add_rules(_if,RTE_ETH_FLOW_TYPE_UDPV4,ttl);
+//        add_rules(_if,RTE_ETH_FLOW_TYPE_TCPV4,ttl);
+//        add_rules(_if,RTE_ETH_FLOW_TYPE_UDPV6,ttl);
+//        add_rules(_if,RTE_ETH_FLOW_TYPE_TCPV6,ttl);
+//    }
+//
     return (0);
 }
-
+//
 
 int CTRexExtendedDriverBase40G::configure_drop_queue(CPhyEthIF * _if){
-
-    /* Configure queue for latency packets */
-    add_rules(_if,RTE_ETH_FLOW_TYPE_IPV4_OTHER,255);
-    add_rules(_if,RTE_ETH_FLOW_TYPE_SCTPV4,255);
+//
+//    /* Configure queue for latency packets */
+//    add_rules(_if,RTE_ETH_FLOW_TYPE_IPV4_OTHER,255);
+//    add_rules(_if,RTE_ETH_FLOW_TYPE_SCTPV4,255);
     return (0);
 }
 
 void CTRexExtendedDriverBase40G::get_extended_stats(CPhyEthIF * _if,CPhyEthIFStats *stats){ 
 
-    struct rte_eth_stats stats1;
-    rte_eth_stats_get(_if->get_port_id(), &stats1);
+    //struct rte_eth_stats stats1;
+    //rte_eth_stats_get(_if->get_port_id(), &stats1);
 
 
-   stats->ipackets     =  stats1.ipackets;
-   stats->ibytes       =  stats1.ibytes; 
-
-   stats->opackets     =  stats1.opackets;
-   stats->obytes       =  stats1.obytes;
-
+//   stats->ipackets     =  stats1.ipackets;
+//   stats->ibytes       =  stats1.ibytes; 
+//
+//   stats->opackets     =  stats1.opackets;
+//   stats->obytes       =  stats1.obytes;
+//
    stats->f_ipackets   = 0;
    stats->f_ibytes     = 0;
 
 
-   stats->ierrors      =  stats1.ierrors + stats1.imissed + stats1.ibadcrc +
-                               stats1.ibadlen      +
-                               stats1.ierrors      +
-                               stats1.oerrors      +
-                               stats1.imcasts      +
-                               stats1.rx_nombuf    +
-                               stats1.tx_pause_xon +
-                               stats1.rx_pause_xon +
-                               stats1.tx_pause_xoff+
-                               stats1.rx_pause_xoff ;
-
-
-   stats->oerrors      =  stats1.oerrors;;
-   stats->imcasts      =  0;
-   stats->rx_nombuf    =  stats1.rx_nombuf;
-
+//   stats->ierrors      =  stats1.ierrors + stats1.imissed + stats1.ibadcrc +
+//                               stats1.ibadlen      +
+//                               stats1.ierrors      +
+//                               stats1.oerrors      +
+//                               stats1.imcasts      +
+//                               stats1.rx_nombuf    +
+//                               stats1.tx_pause_xon +
+//                               stats1.rx_pause_xon +
+//                               stats1.tx_pause_xoff+
+//                               stats1.rx_pause_xoff ;
+//
+//
+//   stats->oerrors      =  stats1.oerrors;;
+//   stats->imcasts      =  0;
+//   stats->rx_nombuf    =  stats1.rx_nombuf;
+//
 }
 
 int CTRexExtendedDriverBase40G::wait_for_stable_link(){
@@ -5158,65 +5244,65 @@ int CTRexExtendedDriverBase40G::wait_for_stable_link(){
 
 
 void CTRexExtendedDriverBase1GVm::update_configuration(port_cfg_t * cfg){
-    struct rte_eth_dev_info dev_info;
-    rte_eth_dev_info_get((uint8_t) 0,&dev_info);
-
-    cfg->m_tx_conf.tx_thresh.pthresh = TX_PTHRESH_1G;
-    cfg->m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
-    cfg->m_tx_conf.tx_thresh.wthresh = 0;
-    cfg->m_tx_conf.txq_flags=dev_info.default_txconf.txq_flags;
-
+//    struct rte_eth_dev_info dev_info;
+//    rte_eth_dev_info_get((uint8_t) 0,&dev_info);
+//
+//    cfg->m_tx_conf.tx_thresh.pthresh = TX_PTHRESH_1G;
+//    cfg->m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
+//    cfg->m_tx_conf.tx_thresh.wthresh = 0;
+//    cfg->m_tx_conf.txq_flags=dev_info.default_txconf.txq_flags;
+//
 }
-
-
+//
+//
 int CTRexExtendedDriverBase1GVm::configure_rx_filter_rules(CPhyEthIF * _if){
     return (0);
 }
 
 void CTRexExtendedDriverBase1GVm::clear_extended_stats(CPhyEthIF * _if){
 
-    rte_eth_stats_reset(_if->get_port_id());
+//    rte_eth_stats_reset(_if->get_port_id());
 
 }
 
 int CTRexExtendedDriverBase1GVm::configure_drop_queue(CPhyEthIF * _if){
-
-
+//
+//
     return (0);
 }
 
 void CTRexExtendedDriverBase1GVm::get_extended_stats(CPhyEthIF * _if,CPhyEthIFStats *stats){ 
 
-    struct rte_eth_stats stats1;
-    rte_eth_stats_get(_if->get_port_id(), &stats1);
+ //   struct rte_eth_stats stats1;
+    //rte_eth_stats_get(_if->get_port_id(), &stats1);
 
 
-   stats->ipackets     =  stats1.ipackets;
-   stats->ibytes       =  stats1.ibytes; 
-
-   stats->opackets     =  stats1.opackets;
-   stats->obytes       =  stats1.obytes;
-
+//   stats->ipackets     =  stats1.ipackets;
+//   stats->ibytes       =  stats1.ibytes; 
+//
+//   stats->opackets     =  stats1.opackets;
+//   stats->obytes       =  stats1.obytes;
+//
    stats->f_ipackets   = 0;
    stats->f_ibytes     = 0;
 
 
-   stats->ierrors      =  stats1.ierrors + stats1.imissed + stats1.ibadcrc +
-                               stats1.ibadlen      +
-                               stats1.ierrors      +
-                               stats1.oerrors      +
-                               stats1.imcasts      +
-                               stats1.rx_nombuf    +
-                               stats1.tx_pause_xon +
-                               stats1.rx_pause_xon +
-                               stats1.tx_pause_xoff+
-                               stats1.rx_pause_xoff ;
-
-
-   stats->oerrors      =  stats1.oerrors;;
-   stats->imcasts      =  0;
-   stats->rx_nombuf    =  stats1.rx_nombuf;
-
+//   stats->ierrors      =  stats1.ierrors + stats1.imissed + stats1.ibadcrc +
+//                               stats1.ibadlen      +
+//                               stats1.ierrors      +
+//                               stats1.oerrors      +
+//                               stats1.imcasts      +
+//                               stats1.rx_nombuf    +
+//                               stats1.tx_pause_xon +
+//                               stats1.rx_pause_xon +
+//                               stats1.tx_pause_xoff+
+//                               stats1.rx_pause_xoff ;
+//
+//
+//   stats->oerrors      =  stats1.oerrors;;
+//   stats->imcasts      =  0;
+//   stats->rx_nombuf    =  stats1.rx_nombuf;
+//
 }
 
 int CTRexExtendedDriverBase1GVm::wait_for_stable_link(){

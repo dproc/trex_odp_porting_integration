@@ -189,7 +189,7 @@ public:
         // doing this inline for performance reasons
 
         /* fast path */
-        if ( likely ( m_ring_from_cp->isEmpty() ) ) {
+        if ( odp_likely ( m_ring_from_cp->isEmpty() ) ) {
             return;
         }
 

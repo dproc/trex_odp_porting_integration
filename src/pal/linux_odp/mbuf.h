@@ -31,10 +31,13 @@ limitations under the License.
 
 #define MAX_NAME_LEN (100)
 #define RTE_PKTMBUF_HEADROOM  (0)
+#define SOCKET_ID_ANY 0
+#define PKT_TX_VLAN_PKT      (1ULL << 57) /**< TX packet is a 802.1q VLAN packet. */
 
 struct rte_mempool {
     uint32_t magic;
     uint32_t socket_id;
+    uint32_t size;
     odp_atomic_u32_t count; //no odp_pool_count like function
     char name[MAX_NAME_LEN];
     odp_pool_param_t odp_buffer_pool_param;
@@ -58,6 +61,24 @@ struct rte_mbuf {
     uint32_t pkt_len;       /**< Total pkt len: sum of all segment data_len. */
 
     odp_atomic_u32_t refcnt;
+
+    uint64_t ol_flags;
+    union {
+        uint64_t tx_offload;       /**< combined for easy fetch */
+        struct {
+            uint64_t l2_len:7; /**< L2 (MAC) Header Length. */
+            uint64_t l3_len:9; /**< L3 (IP) Header Length. */
+            uint64_t l4_len:8; /**< L4 (TCP/UDP) Header Length. */
+            uint64_t tso_segsz:16; /**< TCP TSO segment size */
+
+            /* fields for TX offloading of tunnels */
+            uint64_t outer_l3_len:9; /**< Outer L3 (IP) Hdr Length. */
+            uint64_t outer_l2_len:7; /**< Outer L2 (MAC) Hdr Length. */
+
+            /* uint64_t unused:8; */
+        };
+    };
+    uint16_t vlan_tci;
 };
 typedef struct rte_mbuf rte_mbuf_t;
 
@@ -131,5 +152,6 @@ uint64_t rte_rand(void);
  * store odp_packet_t in *odp_packet_p
  */
 int mbuf_to_odp_packet(rte_mbuf_t* mbuf, odp_packet_t* odp_packet_p);
-
+int mbuf_to_odp_packet_tbl(rte_mbuf**pkts, odp_packet_t* odp_pkts, uint16_t pkt_nm);
+static inline void rte_pktmbuf_refcnt_update(struct rte_mbuf *m, int16_t v) {;}
 #endif

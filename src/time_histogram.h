@@ -83,8 +83,8 @@ public:
     uint32_t m_win_cnt;
     dsec_t   m_max_ar[HISTOGRAM_QUEUE_SIZE];
 
-    uint64_t m_hcnt[HISTOGRAM_SIZE_LOG][HISTOGRAM_SIZE] __rte_cache_aligned ;
-    uint64_t m_hcnt_shadow[HISTOGRAM_SIZE_LOG][HISTOGRAM_SIZE] __rte_cache_aligned ; // this this contorl side 
+    uint64_t m_hcnt[HISTOGRAM_SIZE_LOG][HISTOGRAM_SIZE] ODP_ALIGNED_CACHE ;
+    uint64_t m_hcnt_shadow[HISTOGRAM_SIZE_LOG][HISTOGRAM_SIZE] ODP_ALIGNED_CACHE ; // this this contorl side 
     uint64_t m_cnt_shadow;
     uint64_t m_high_cnt_shadow;
 };

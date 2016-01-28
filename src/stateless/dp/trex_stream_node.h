@@ -43,7 +43,7 @@ public:
 public:
     void free_command();
 
-} __rte_cache_aligned;;
+} ODP_ALIGNED_CACHE;
 
 
 static_assert(sizeof(CGenNodeCommand) == sizeof(CGenNode), "sizeof(CGenNodeCommand) != sizeof(CGenNode)" );
@@ -185,7 +185,7 @@ public:
 
     inline void handle_continues(CFlowGenListPerThread *thread) {
 
-        if (unlikely (is_pause()==false)) {
+        if (odp_unlikely (is_pause()==false)) {
             thread->m_node_gen.m_v_if->send_node( (CGenNode *)this);
         }
 
@@ -336,7 +336,7 @@ private:
     void refresh_vm_bss();
 
 
-} __rte_cache_aligned;
+} ODP_ALIGNED_CACHE;
 
 static_assert(sizeof(CGenNodeStateless) == sizeof(CGenNode), "sizeof(CGenNodeStateless) != sizeof(CGenNode)" );
 

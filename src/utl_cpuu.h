@@ -52,7 +52,7 @@ private:
     uint64_t m_total_cycles;
     uint64_t m_data;
 
-} __rte_cache_aligned; 
+} ODP_ALIGNED_CACHE; 
 
 class CCpuUtlCp {
 public:

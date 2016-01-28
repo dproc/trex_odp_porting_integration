@@ -379,7 +379,7 @@ private:
      CNatRxManager           m_nat_check_manager;
      CCpuUtlDp               m_cpu_dp_u;
      CCpuUtlCp               m_cpu_cp_u;
-     volatile bool           m_do_stop __rte_cache_aligned ;
+     volatile bool           m_do_stop ODP_ALIGNED_CACHE ;
 };
 
 #endif

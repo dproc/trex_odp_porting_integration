@@ -2075,7 +2075,7 @@ int CRxCheckIF::send_node(CGenNode * node){
     uint8_t p_id = node->m_pkt_info->m_pkt_indication.m_desc.IsInitSide()?0:1;
     memcpy(p,CGlobalInfo::m_options.get_dst_src_mac_addr(p_id),12);
 
-    if ( unlikely( node->is_rx_check_enabled() ) ) {
+    if ( odp_unlikely( node->is_rx_check_enabled() ) ) {
         lp->do_generate_new_mbuf_rxcheck(m,node,p_id,m_one_dir);
     }
 

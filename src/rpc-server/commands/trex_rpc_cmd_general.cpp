@@ -32,7 +32,7 @@ limitations under the License.
 #include <unistd.h>
 
 #ifdef RTE_DPDK
-    #include <../linux_dpdk/version.h>
+    #include <../linux_odp/version.h>
 #endif
 
 using namespace std;

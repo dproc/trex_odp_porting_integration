@@ -711,7 +711,7 @@ public:
         mac_align_t m_mac;
         uint8_t     m_data[16];
     } u;
-} __rte_cache_aligned; ;
+} ODP_ALIGNED_CACHE; ;
 
 struct CParserOption {
 
@@ -925,6 +925,7 @@ public:
 
     /* return the core mask */
     virtual uint64_t get_cores_mask()=0;
+    virtual uint8_t  get_cores_num()=0;
 
     /* virtual thread_id is always from   1..number of threads  virtual  */
     virtual virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t  phy_id)=0;
@@ -967,7 +968,7 @@ public:
 
     /* return the core mask */
     uint64_t get_cores_mask();
-
+    uint8_t  get_cores_num();
     /* virtual thread_id is always from   1..number of threads  virtual  */
     virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t  phy_id);
 
@@ -1013,6 +1014,7 @@ public:
 
     /* return the core mask */
     uint64_t get_cores_mask();
+    uint8_t  get_cores_num();
 
     /* virtual thread_id is always from   1..number of threads  virtual  */
     virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t  phy_id);
@@ -1077,7 +1079,7 @@ public:
 
     /* return the core mask */
     uint64_t get_cores_mask();
-
+    uint8_t  get_cores_num();
     /* virtual thread_id is always from   1..number of threads  virtual  */
     virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t  phy_id);
 
@@ -1100,7 +1102,7 @@ class CRteMemPool {
 public:
     inline rte_mbuf_t   * _rte_pktmbuf_alloc(rte_mempool_t * mp ){
         rte_mbuf_t   * m=rte_pktmbuf_alloc(mp);
-        if ( likely(m>0) ) {
+        if ( odp_likely(m>0) ) {
             return (m);
         }
         dump_in_case_of_error(stderr);
@@ -1212,7 +1214,7 @@ public:
 
     static inline CGenNode * create_node(void){
         CGenNode * res;
-        if ( unlikely (rte_mempool_get(m_mem_pool[0].m_mbuf_global_nodes, (void **)&res) <0) ){
+        if ( odp_unlikely (rte_mempool_get(m_mem_pool[0].m_mbuf_global_nodes, (void **)&res) <0) ){
             rte_exit(EXIT_FAILURE, "can't allocate m_mbuf_global_nodes  objects try to tune the configuration file \n");
             return (0);
         }
@@ -1674,7 +1676,7 @@ public:
 public:
     inline void replace_tuple(void);
 
-} __rte_cache_aligned;
+} ODP_ALIGNED_CACHE;
 
 
 
@@ -1718,7 +1720,7 @@ public:
         return (false);
     }
 
-} __rte_cache_aligned ;
+} ODP_ALIGNED_CACHE ;
 
 /* run time verification of objects size and offsets 
    need to clean this up and derive this objects from base object but require too much refactoring right now
@@ -2715,7 +2717,7 @@ inline void CFlowPktInfo::update_pkt_info2(char *p,
 
     (void)et;
 
-    if ( unlikely (m_pkt_indication.is_ipv6())) {
+    if ( odp_unlikely (m_pkt_indication.is_ipv6())) {
         IPv6Header *ipv6= (IPv6Header *)ipv4;
 
         if ( update_len ){
@@ -2805,7 +2807,7 @@ inline void CFlowPktInfo::update_pkt_info(char *p,
     pkt_dir_t port_dir = node->cur_pkt_port_addr_dir();
 
 
-    if ( unlikely (m_pkt_indication.is_ipv6())) {
+    if ( odp_unlikely (m_pkt_indication.is_ipv6())) {
     
         // Update the IPv6 address
         IPv6Header *ipv6= (IPv6Header *)ipv4;
@@ -2819,7 +2821,7 @@ inline void CFlowPktInfo::update_pkt_info(char *p,
         }
     }else{
 
-        if ( unlikely ( CGlobalInfo::is_learn_mode()  ) ){
+        if ( odp_unlikely ( CGlobalInfo::is_learn_mode()  ) ){
 
             if (m_pkt_indication.m_desc.IsLearn()) {
                 /* might be done twice */
@@ -2973,7 +2975,7 @@ inline rte_mbuf_t * CFlowPktInfo::do_generate_new_mbuf_ex_vm(CGenNode * node,
     rte_mbuf_t        * m;
 
     /* sanity check we need to have payload */
-    if ( unlikely( m_pkt_indication.m_payload_len == 0) ){
+    if ( odp_unlikely( m_pkt_indication.m_payload_len == 0) ){
         printf(" ERROR nothing to do \n");
         return (do_generate_new_mbuf_ex(node,flow_info));
     }
@@ -3311,7 +3313,7 @@ public:
     uint16_t                m_id ;
     uint32_t                m_thread_id;
     bool                    m_tuple_gen_was_set;
-} __rte_cache_aligned; 
+} ODP_ALIGNED_CACHE; 
 
 
 
@@ -3582,12 +3584,12 @@ private:
     bool                             m_terminated_by_master;
 
 private:
-    uint8_t                 m_cacheline_pad[RTE_CACHE_LINE_SIZE][19]; // improve prefech 
-} __rte_cache_aligned ;
+    uint8_t                 m_cacheline_pad[ODP_CACHE_LINE_SIZE][19]; // improve prefech 
+} ODP_ALIGNED_CACHE ;
 
 inline CGenNode * CFlowGenListPerThread::create_node(void){
     CGenNode * res;
-    if ( unlikely (rte_mempool_sc_get(m_node_pool, (void **)&res) <0) ){
+    if ( odp_unlikely (rte_mempool_sc_get(m_node_pool, (void **)&res) <0) ){
         rte_exit(EXIT_FAILURE, "cant allocate object , need more \n");
         return (0);
     }
@@ -3691,7 +3693,7 @@ inline void CCapFileFlowInfo::generate_flow(CTupleTemplateGeneratorSmart   * tup
            sizeof(mac_addr_align_t));
     node->m_plugin_info =(void *)0;
 
-    if ( unlikely( CGlobalInfo::is_learn_mode()  ) ){
+    if ( odp_unlikely( CGlobalInfo::is_learn_mode()  ) ){
         // check if flow is two direction 
         if ( lp->m_pkt_indication.m_desc.IsBiDirectionalFlow() ) {
             /* we are in learn mode */
@@ -3701,25 +3703,25 @@ inline void CCapFileFlowInfo::generate_flow(CTupleTemplateGeneratorSmart   * tup
         }
     }
 
-    if ( unlikely(  get_is_rx_check_mode()) ) {
+    if ( odp_unlikely(  get_is_rx_check_mode()) ) {
         if  ( (CGlobalInfo::m_options.m_rx_check_sampe == 1 ) ||
             ( ( rte_rand() % CGlobalInfo::m_options.m_rx_check_sampe ) == 1 )){
-           if (unlikely(!node->is_repeat_flow() )) {
+           if (odp_unlikely(!node->is_repeat_flow() )) {
                node->set_rx_check();
            }
         }
     }
 
-    if ( unlikely( CGlobalInfo::m_options.preview.getClientServerFlowFlipAddr() ) ){
+    if ( odp_unlikely( CGlobalInfo::m_options.preview.getClientServerFlowFlipAddr() ) ){
         node->set_initiator_start_from_server_side_with_server_addr(node->is_eligible_from_server_side());
     }else{
         /* -p */
-        if ( likely( CGlobalInfo::m_options.preview.getClientServerFlowFlip() ) ){
+        if ( odp_likely( CGlobalInfo::m_options.preview.getClientServerFlowFlip() ) ){
             node->set_initiator_start_from_server(node->is_eligible_from_server_side());
             node->set_all_flow_from_same_dir(true);
         }else{
             /* --flip */
-            if ( unlikely( CGlobalInfo::m_options.preview.getClientServerFlip() ) ){
+            if ( odp_unlikely( CGlobalInfo::m_options.preview.getClientServerFlip() ) ){
                 node->set_initiator_start_from_server(node->is_eligible_from_server_side());
             }
         }
@@ -3773,7 +3775,7 @@ inline bool CGenNode::is_repeat_flow(){
 }
 
 inline void CGenNode::update_next_pkt_in_flow(void){
-        if ( likely ( m_pkt_info->m_pkt_indication.m_desc.IsPcapTiming()) ){
+        if ( odp_likely ( m_pkt_info->m_pkt_indication.m_desc.IsPcapTiming()) ){
             m_time     += m_pkt_info->m_pkt_indication.m_cap_ipg ;
         }else{
             if ( m_pkt_info->m_pkt_indication.m_desc.IsRtt() ){
@@ -3872,6 +3874,10 @@ inline  pkt_dir_t CGenNode::cur_interface_dir(){
     } 
 }
 
-
+inline int dry_run(void) {
+    int i=0;
+    i++;
+    return i;
+}
 
 #endif

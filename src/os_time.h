@@ -23,6 +23,7 @@ limitations under the License.
 
 #include <stdint.h>
 #include <time.h>
+#include <odp.h>
 
 typedef uint64_t   hr_time_t; // time in high res tick 
 typedef uint32_t   hr_time_32_t; // time in high res tick 
@@ -38,12 +39,9 @@ uint32_t 	 os_get_time_freq();
 #ifdef RTE_DPDK
 
 
-//extern "C" uint64_t rte_get_hpet_hz(void);
-
-#include "rte_cycles.h"
-
 static inline hr_time_t    os_get_hr_tick_64(void){
-    return (rte_rdtsc());
+    odp_time_t now = odp_time_global();
+    return odp_time_to_u64(now);
 }
 
 static inline hr_time_32_t os_get_hr_tick_32(void){
@@ -51,7 +49,7 @@ static inline hr_time_32_t os_get_hr_tick_32(void){
 }
 
 static inline hr_time_t    os_get_hr_freq(void){
-    return (rte_get_tsc_hz() );
+    return (odp_time_global_res() );
 }
 
 

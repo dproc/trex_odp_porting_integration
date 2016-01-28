@@ -40,7 +40,7 @@ limitations under the License.
 // DPDK c++ issue 
 #endif
 
-#include <rte_ethdev.h>
+//#include <rte_ethdev.h>
 #include <os_time.h>
 
 void

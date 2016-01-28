@@ -28,6 +28,9 @@ limitations under the License.
 #include <odp.h>
 #include <odp/helper/ring.h>
 
+#define RING_F_SP_ENQ 0x0001 /**< The default enqueue is "single-producer". */
+#define RING_F_SC_DEQ 0x0002 /**< The default dequeue is "single-consumer". */
+
 class CRingSp {
 public:
     CRingSp(){

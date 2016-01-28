@@ -496,9 +496,9 @@ void rte_pktmbuf_dump(FILE *f, const rte_mbuf_t* mbuf, uint32_t dump_len)
 
     utl_mbuf_check(mbuf);
 
-    fprintf(f, "dump mbuf at 0x%p, buf_addr=%"PRIx64", buf_len=%u\n",
+    fprintf(f, "dump mbuf at 0x%p, buf_addr=%lx, buf_len=%u\n",
 	    mbuf, (uint64_t)mbuf->buf_addr, (uint32_t)mbuf->buf_len);
-    fprintf(f, "  pkt_len=%"PRIu32", nb_segs=%u, in_port=%u\n",
+    fprintf(f, "  pkt_len=%u, nb_segs=%u, in_port=%u\n",
 	    mbuf->pkt_len, (uint32_t)mbuf->nb_segs, (uint32_t)mbuf->in_port);
     nb_segs = mbuf->nb_segs;
 
@@ -588,5 +588,13 @@ int mbuf_to_odp_packet(rte_mbuf_t* mbuf, odp_packet_t* odp_packet_p)
     *odp_packet_p = pkt;
     
     return 0;
+}
+
+int mbuf_to_odp_packet_tbl(rte_mbuf**pkts, odp_packet_t* odp_pkts, uint16_t nb_pkts) {
+    int i=0;
+    for (i=0; i<nb_pkts; i++) {
+        mbuf_to_odp_packet(pkts[i], &odp_pkts[i]);        
+    } 
+    return i;
 }
 
