@@ -431,9 +431,12 @@ includes_path =''' ../src/pal/linux_odp/
                    ../external_libs/yaml-cpp/include/
                    ../external_libs/zmq/include/
                    ../external_libs/json/
-                   ../odp-dpdk/build/include/
-                   ../odp-dpdk/platform/linux-generic/include/
+                   ../external_libs/odp/include/
+                   ../external_libs/odp/platform/linux-generic/include/ 
+                   ../external_libs/odp/helper/include
               ''';
+#                   ../odp-dpdk/build/include/
+#                   ../odp-dpdk/platform/linux-generic/include/
 
 #                        ../src/dpdk_lib18/librte_eal/linuxapp/eal/include/
 #                        ../src/dpdk_lib18/librte_eal/common/include/
