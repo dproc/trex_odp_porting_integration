@@ -1,8 +1,0 @@
-odp_impl.lo: odp_impl.c include/odp/version.h \
- include/odp/plat/version_types.h ../../include/odp/api/version.h
-
-include/odp/version.h:
-
-include/odp/plat/version_types.h:
-
-../../include/odp/api/version.h:

@@ -64,7 +64,7 @@ limitations under the License.
 
 #include <odp.h>
 #include <odp/helper/linux.h>
-#include <helper/eth.h>
+#include <odp/helper/eth.h>
 #include <../linux_odp/version.h>
 
 #include "ixgbe_type.h"
