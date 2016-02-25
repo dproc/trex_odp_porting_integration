@@ -1,0 +1,8 @@
+odp_version.lo: odp_version.c include/odp/version.h \
+ include/odp/plat/version_types.h ../../include/odp/api/version.h
+
+include/odp/version.h:
+
+include/odp/plat/version_types.h:
+
+../../include/odp/api/version.h:
