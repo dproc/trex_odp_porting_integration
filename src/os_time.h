@@ -40,8 +40,8 @@ uint32_t 	 os_get_time_freq();
 
 
 static inline hr_time_t    os_get_hr_tick_64(void){
-    odp_time_t now = odp_time_global();
-    return odp_time_to_u64(now);
+    odp_time_t now = odp_time_local();
+    return odp_time_to_ns(now);
 }
 
 static inline hr_time_32_t os_get_hr_tick_32(void){
@@ -49,7 +49,7 @@ static inline hr_time_32_t os_get_hr_tick_32(void){
 }
 
 static inline hr_time_t    os_get_hr_freq(void){
-    return (odp_time_global_res() );
+    return (1000000000 );
 }
 
 

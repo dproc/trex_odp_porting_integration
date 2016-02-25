@@ -254,7 +254,7 @@ rte_mbuf_t *rte_pktmbuf_alloc(rte_mempool_t *mp)
 	printf("%s invalid length\n", __FUNCTION__);
 	return NULL;
     }
-    odp_memset((uint8_t*)mbuf, 0, total_len);
+    memset((uint8_t*)mbuf, 0, total_len);
     buf_len = total_len - sizeof(rte_mbuf_t);
 
     mbuf->magic = MAGICA;
@@ -520,7 +520,7 @@ void rte_pktmbuf_dump(FILE *f, const rte_mbuf_t* mbuf, uint32_t dump_len)
 
 void * rte_memcpy(void *dst, const void *src, size_t n)
 {
-    return odp_memcpy(dst, src, n);
+    return memcpy(dst, src, n);
 }
 
 
@@ -579,7 +579,7 @@ int mbuf_to_odp_packet(rte_mbuf_t* mbuf, odp_packet_t* odp_packet_p)
     
     while(mbuf != NULL && pkt_len > 0) {
 	data_addr = (uint8_t*)mbuf->buf_addr + mbuf->data_off;
-	odp_memcpy(buf, data_addr, mbuf->data_len);
+	memcpy(buf, data_addr, mbuf->data_len);
 	buf += mbuf->data_len;
 	pkt_len -= mbuf->data_len;
 	mbuf = mbuf->next;

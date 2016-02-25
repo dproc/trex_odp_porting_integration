@@ -18,17 +18,13 @@
 extern "C" {
 #endif
 
-/**
- * @addtogroup odp_locks
- * @details
- * <b> Ticket lock (odp_ticketlock_t) </b>
- *
+/** @addtogroup odp_synchronizers
+ * Operations on ticket locks.
  * Acquiring a ticket lock happens in two phases. First the threads takes a
- * ticket. Second it waits (spins) until it is its turn. Ticket locks are
- * believed to be more fair than spin locks. Ticket locks shall not be used
- * if a thread may be preempted, since other threads cannot acquire the lock
- * while the thread in turn is stalled.
- * @{
+ * ticket. Second it waits (spins) until it is its turn.
+ * Ticket locks are believed to be more fair than spin locks.
+ * Ticket locks shall not be used in the presence of preemption.
+ *  @{
  */
 
 /**

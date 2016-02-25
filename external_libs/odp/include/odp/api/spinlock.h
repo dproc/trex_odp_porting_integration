@@ -18,14 +18,9 @@
 extern "C" {
 #endif
 
-/**
- * @addtogroup odp_locks
- * @details
- * <b> Spin lock (odp_spinlock_t) </b>
- *
- * Spinlock simply re-tries to acquire the lock as long as takes to succeed.
- * Spinlock is not fair since some threads may succeed more often than others.
- * @{
+/** @addtogroup odp_synchronizers
+ *  Operations on spin locks.
+ *  @{
  */
 
 /**

@@ -1075,8 +1075,11 @@ struct rte_eth_dev_sriov {
  *   A pointer to a structure of type *rte_eth_dev_info* to be filled with
  *   the contextual information of the Ethernet device.
  */
-extern void rte_eth_dev_info_get(uint8_t port_id,
-				 struct rte_eth_dev_info *dev_info);
+void rte_eth_dev_info_get(uint8_t port_id,
+				 struct rte_eth_dev_info *dev_info)
+{
+;
+}
 
 
 /**
