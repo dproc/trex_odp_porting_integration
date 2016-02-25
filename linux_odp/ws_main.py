@@ -434,6 +434,7 @@ includes_path =''' ../src/pal/linux_odp/
                    ../external_libs/odp/include/
                    ../external_libs/odp/platform/linux-generic/include/ 
                    ../external_libs/odp/helper/include
+                   ../external_libs/odp/platform/linux-generic/arch/x86/
             ''';
 #                   ../odp-dpdk/build/include/
 #                   ../odp-dpdk/platform/linux-generic/include/

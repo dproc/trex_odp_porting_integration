@@ -25,31 +25,7 @@ limitations under the License.
 // DPDK c++ issue 
 
 #include <pwd.h>
-//#include <rte_common.h>
-//#include <rte_log.h>
-//#include <rte_memory.h>
-//#include <rte_memcpy.h>
-//#include <rte_memzone.h>
-//#include <rte_tailq.h>
-//#include <rte_eal.h>
-//#include <rte_per_lcore.h>
-//#include <rte_launch.h>
-//#include <rte_atomic.h>
-//#include <rte_cycles.h>
-//#include <rte_prefetch.h>
-//#include <rte_lcore.h>
-//#include <rte_per_lcore.h>
-//#include <rte_branch_prediction.h>
-//#include <rte_interrupts.h>
-//#include <rte_pci.h>
-//#include <rte_random.h>
-//#include <rte_debug.h>
-//#include <rte_ether.h>
 #include <rte_ethdev.h>
-//#include <rte_ring.h>
-//#include <rte_mempool.h>
-//#include <rte_mbuf.h>
-//#include <rte_random.h>
 #include "bp_sim.h"
 #include "latency.h"
 #include "os_time.h"
@@ -133,10 +109,6 @@ public:
     virtual int get_min_sample_rate(void)=0;
     virtual void update_configuration(port_cfg_t * cfg)=0;
     virtual void update_global_config_fdir(port_cfg_t * cfg)=0;
-//
-//    virtual bool is_hardware_filter_is_supported(){
-//        return(false);
-//    }
     virtual int configure_rx_filter_rules(CPhyEthIF * _if)=0;
 //
 //    virtual bool is_hardware_support_drop_queue(){
@@ -3549,7 +3521,7 @@ odp_pktio_t CPhyEthIF::create_pktio(odp_pool_t pool) {
     odp_pktio_param_init(&pktio_param);
 
     pktio_param.in_mode = ODP_PKTIN_MODE_DISABLED;
-    pktio_param.out_mode = ODP_PKTOUT_MODE_SEND;
+    pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
 
     pktio = odp_pktio_open((char*)&m_port_id, pool, &pktio_param);
     if (pktio == ODP_PKTIO_INVALID) {
