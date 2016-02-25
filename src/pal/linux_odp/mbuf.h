@@ -62,6 +62,10 @@ struct rte_mbuf {
 
     odp_atomic_u32_t refcnt;
 
+#if 0
+    /* DPFIXME
+     * no hw offload in odp so discard below fields
+     */
     /*FIXME: added to pass the build*/
     uint64_t ol_flags;
     union {
@@ -80,6 +84,7 @@ struct rte_mbuf {
         };
     };
     uint16_t vlan_tci;
+#endif  
 };
 typedef struct rte_mbuf rte_mbuf_t;
 
@@ -155,6 +160,5 @@ uint64_t rte_rand(void);
 int mbuf_to_odp_packet(rte_mbuf_t* mbuf, odp_packet_t* odp_packet_p);
 int mbuf_to_odp_packet_tbl(rte_mbuf**pkts, odp_packet_t* odp_pkts, uint16_t pkt_nm);
 
-/*FIXME: added this definition to pass the build*/
-static inline void rte_pktmbuf_refcnt_update(struct rte_mbuf *m, int16_t v) {;}
+extern void rte_pktmbuf_refcnt_update(struct rte_mbuf *m, int16_t v);
 #endif

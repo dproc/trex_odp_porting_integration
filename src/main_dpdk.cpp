@@ -2189,6 +2189,10 @@ int CCoreEthIF::send_node(CGenNode * node){
     dir = node->cur_interface_dir();
     single_port = node->get_is_all_flow_from_same_dir() ;
 
+#if 0
+    /* DPFIXME
+     * no vlan offload in odp so should disable vlan trunk support
+     */
     if ( odp_unlikely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
         /* which vlan to choose 0 or 1*/
         uint8_t vlan_port = (node->m_src_ip &1);
@@ -2208,7 +2212,8 @@ int CCoreEthIF::send_node(CGenNode * node){
 			dir = dir ^ 0;
 		}
     }
-
+#endif
+    
     CCorePerPort *  lp_port=&m_ports[dir];
     CVirtualIFPerSideStats  * lp_stats = &m_stats[dir];
 
@@ -2294,6 +2299,10 @@ public:
     virtual int tx(rte_mbuf_t * m){
         rte_mbuf_t * tx_pkts[2];
         tx_pkts[0]=m;
+#if 0
+    /* DPFIXME
+     * no vlan offload in odp so should disable vlan trunk support
+     */
         if ( odp_likely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
              /* vlan mode is the default */
              /* set the vlan */
@@ -2301,6 +2310,7 @@ public:
              m->vlan_tci =CGlobalInfo::m_options.m_vlan_port[0];
 			 m->l2_len   =14;
         }
+#endif
         uint16_t res=m_port->tx_burst(tx_pkts,1);
         if ( res == 0 ) {
             rte_pktmbuf_free(m);
@@ -2353,6 +2363,10 @@ public:
     }
 
     virtual int tx(rte_mbuf_t * m){
+#if 0
+    /* DPFIXME
+     * no vlan offload in odp so should disable vlan trunk support
+     */
         if ( odp_likely( CGlobalInfo::m_options.preview.get_vlan_mode_enable() ) ){
              /* vlan mode is the default */
              /* set the vlan */
@@ -2360,6 +2374,7 @@ public:
              m->vlan_tci =CGlobalInfo::m_options.m_vlan_port[0];
 			 m->l2_len   =14;
         }
+#endif	
 
         /* allocate node */
         CGenNodeLatencyPktInfo * node=(CGenNodeLatencyPktInfo * )CGlobalInfo::create_node();

@@ -598,3 +598,46 @@ int mbuf_to_odp_packet_tbl(rte_mbuf**pkts, odp_packet_t* odp_pkts, uint16_t nb_p
     return i;
 }
 
+static void rte_mbuf_sanity_check(const struct rte_mbuf *m, int is_header)
+{
+	const struct rte_mbuf *m_seg;
+	unsigned nb_segs;
+
+	if (m == NULL)
+	    rte_exit(EXIT_FAILURE, "mbuf is NULL\n", __FUNCTION__, __LINE__);
+
+	/* generic checks */
+	if (m->pool == NULL)
+	    rte_exit(EXIT_FAILURE, "bad mbuf pool\n", __FUNCTION__, __LINE__);
+	if (m->buf_addr == NULL)
+	    rte_exit(EXIT_FAILURE, "bad virt addr\n", __FUNCTION__, __LINE__);
+
+#ifdef RTE_MBUF_REFCNT
+	uint16_t cnt = m->refcnt;
+	if ((cnt == 0) || (cnt == UINT16_MAX))
+	    rte_exit(EXIT_FAILURE, "bad ref cnt\n", __FUNCTION__, __LINE__);
+#endif
+
+	/* nothing to check for sub-segments */
+	if (is_header == 0)
+	    return;
+
+	nb_segs = m->nb_segs;
+	m_seg = m;
+	while (m_seg && nb_segs != 0) {
+		m_seg = m_seg->next;
+		nb_segs--;
+	}
+	if (nb_segs != 0)
+	    rte_exit(EXIT_FAILURE, "bad nb_segs\n", __FUNCTION__, __LINE__);
+}
+
+void rte_pktmbuf_refcnt_update(struct rte_mbuf *m, int16_t v)
+{
+	rte_mbuf_sanity_check(m, 1);
+
+	do {
+	    rte_mbuf_refcnt_update(m, v);
+	} while ((m = m->next) != NULL);
+}
+
