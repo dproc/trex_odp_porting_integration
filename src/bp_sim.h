@@ -679,6 +679,13 @@ public:
         return (btGetMaskBit32(m_flags1,4,4) ? true:false);
     }
 
+    void setODPGeneric(bool enable){
+        btSetMaskBit32(m_flags1,5,5,enable?1:0);
+    }
+
+    bool getODPGeneric(){
+        return (btGetMaskBit32(m_flags1,5,5) ? true:false);
+    }
 
 
 
@@ -1224,6 +1231,11 @@ public:
     static inline void free_node(CGenNode *p){
         rte_mempool_put(m_mem_pool[0].m_mbuf_global_nodes, p);
     }
+
+    static inline bool is_odpgeneric(void){
+      return ( m_options.preview.getODPGeneric());
+    }
+
 
 
 public:

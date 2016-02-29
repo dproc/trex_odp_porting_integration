@@ -1,9 +1,31 @@
 #! /bin/bash
-./trex-cfg $@
-RESULT=$?
-if [ $RESULT -ne 0 ]; then
-  exit $RESULT
-fi
+
+inarg="$@"
+odp_generic=0
+while :
+do
+    if [ -z $1 ]; then
+	break;
+    fi
+    case "$1" in
+	*odp-generic* ) odp_generic=1; break ;;
+	* ) shift ;;
+    esac
+done
+
+set -- $inarg
+
+if [ "$odp_generic" -eq 0 ]
+then
+    echo "trex on odp dpdk"
+    ./trex-cfg $@
+    RESULT=$?
+    if [ $RESULT -ne 0 ]; then
+	exit $RESULT
+    fi
+else
+    echo "trex on odp generic"
+fi    
 
 
 cd $(dirname $0)
@@ -11,15 +33,17 @@ export LD_LIBRARY_PATH=$PWD
 saveterm="$(stty -g)"
 # if we have a new core run optimized trex 
 if  cat /proc/cpuinfo | grep -q avx ; then
-    ./_$(basename $0) $@
+    echo "run ./_$(basename $0) $@"
+#    ./_$(basename $0) $@
     if [ $? -eq 132 ]; then
         echo " WARNING this program is optimized for the new Intel processors.  "
         echo " try the ./t-rex-64-o application that should work for any Intel processor but might be slower. "
         echo " try to run t-rex-64-o .. "
-        ./_t-rex-64-o $@
+#        ./_t-rex-64-o $@
     fi
 else
-        ./_t-rex-64-o $@
+    echo "run ./_t-rex-64-0 $@"
+#        ./_t-rex-64-o $@
 fi
 stty $saveterm  
 

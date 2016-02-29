@@ -459,7 +459,8 @@ enum { OPT_HELP,
 	OPT_VLAN,
     OPT_VIRT_ONE_TX_RX_QUEUE,
     OPT_PREFIX,
-    OPT_MAC_SPLIT
+    OPT_MAC_SPLIT,
+    OPT_ODP_GENERIC,
 
 };
 
@@ -519,7 +520,8 @@ static CSimpleOpt::SOption parser_options[] =
     { OPT_VIRT_ONE_TX_RX_QUEUE, "--vm-sim", SO_NONE }, 
     { OPT_PREFIX, "--prefix", SO_REQ_SEP }, 
     { OPT_MAC_SPLIT, "--mac-spread", SO_REQ_SEP },
-
+    { OPT_ODP_GENERIC ,             "--odp-generic",                SO_NONE  },
+    
     SO_END_OF_OPTIONS
 };
 
@@ -852,6 +854,11 @@ static int parse_options(int argc, char *argv[], CParserOption* po, bool first_t
                 po->preview.set_mac_ip_features_enable(true);
                 po->preview.setDestMacSplit(true);
                 break;
+            case OPT_ODP_GENERIC :
+                printf("set odp generic");
+                po->preview.setODPGeneric(true);
+                break;
+		
 
             default:
                 usage();
@@ -3310,11 +3317,10 @@ int  CGlobalTRex::ixgbe_start(void){
             socket_id_t socket_id = CGlobalInfo::m_socket.port_to_socket((port_id_t)i);
             assert(CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool);
 
-
+            _if->create_pktio(get_odp_packet_pool(socket_id));
 
             //_if->set_rx_queue(0);
-            _if->create_pktio(
-                    CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool->odp_buffer_pool);
+	    //_if->create_pktio(CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool->odp_buffer_pool);
 //            _if->rx_queue_setup(0,
 //                                RTE_TEST_RX_DESC_VM_DEFAULT,
 //                                socket_id, 
@@ -3341,9 +3347,10 @@ int  CGlobalTRex::ixgbe_start(void){
 
             socket_id_t socket_id = CGlobalInfo::m_socket.port_to_socket((port_id_t)i);
             assert(CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool);
-
-            _if->create_pktio(
-                    CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool->odp_buffer_pool);
+	    
+            _if->create_pktio(get_odp_packet_pool(socket_id));
+	    
+	    //_if->create_pktio(CGlobalInfo::m_mem_pool[socket_id].m_big_mbuf_pool->odp_buffer_pool);
 
 //            /* drop queue */
 //            _if->rx_queue_setup(0,
@@ -3538,10 +3545,20 @@ odp_pktio_t CPhyEthIF::create_pktio(odp_pool_t pool) {
     pktio_param.in_mode = ODP_PKTIN_MODE_DISABLED;
     pktio_param.out_mode = ODP_PKTOUT_MODE_DIRECT;
 
-    pktio = odp_pktio_open((char*)&m_port_id, pool, &pktio_param);
-    if (pktio == ODP_PKTIO_INVALID) {
-        pktio = odp_pktio_lookup((char*)&m_port_id);
+    if(CGlobalInfo::is_odpgeneric()) {
+	//m_port_id is initialized in a way that it can be used as the index
+	const char* devname = global_platform_cfg_info.m_if_list[m_port_id].c_str();
+	pktio = odp_pktio_open(devname, pool, &pktio_param);
+	if (pktio == ODP_PKTIO_INVALID) {
+	    pktio = odp_pktio_lookup(devname);
+	}
+    } else {
+	pktio = odp_pktio_open((char*)&m_port_id, pool, &pktio_param);
+	if (pktio == ODP_PKTIO_INVALID) {
+	    pktio = odp_pktio_lookup((char*)&m_port_id);
+	}
     }
+    
     assert(pktio!=ODP_PKTIO_INVALID);
     m_pkt_io = pktio;
     return pktio;
@@ -4667,11 +4684,20 @@ int main_test(int argc , char * argv[]){
         return (-1);
     }
 
-    if (odp_init_global(NULL, (odp_platform_init_t*)global_dpdk_args_line)) {
-        printf(" You might need to run ./trex-cfg  once  \n");
-        printf("Error: ODP global init failed.\n");
-        exit(1);
+    if(CGlobalInfo::is_odpgeneric()) {
+	if (odp_init_global(NULL, NULL)) {
+	    printf("Error: ODP global init failed.\n");
+	    exit(1);
+	}	
+    } else {
+	if (odp_init_global(NULL, (odp_platform_init_t*)global_dpdk_args_line)) {
+	    printf(" You might need to run ./trex-cfg  once  \n");
+	    printf("Error: ODP global init failed.\n");
+	    exit(1);
+	}
     }
+    
+    
 
     if (odp_init_local(ODP_THREAD_CONTROL)) {
         printf("Error: ODP local init failed.\n");

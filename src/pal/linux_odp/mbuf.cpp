@@ -641,3 +641,7 @@ void rte_pktmbuf_refcnt_update(struct rte_mbuf *m, int16_t v)
 	} while ((m = m->next) != NULL);
 }
 
+odp_pool_t get_odp_packet_pool(int socket_id)
+{
+    return packet_pool_arr[socket_id];
+}

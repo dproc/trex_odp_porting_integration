@@ -161,4 +161,5 @@ int mbuf_to_odp_packet(rte_mbuf_t* mbuf, odp_packet_t* odp_packet_p);
 int mbuf_to_odp_packet_tbl(rte_mbuf**pkts, odp_packet_t* odp_pkts, uint16_t pkt_nm);
 
 extern void rte_pktmbuf_refcnt_update(struct rte_mbuf *m, int16_t v);
+extern odp_pool_t get_odp_packet_pool(int socket_id);
 #endif
