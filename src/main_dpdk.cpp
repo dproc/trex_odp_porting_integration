@@ -664,98 +664,18 @@ int main_test(int argc , char * argv[]);
 struct port_cfg_t {
     public:
     port_cfg_t(){
-//        memset(&m_port_conf,0,sizeof(rte_eth_conf));
-//        memset(&m_rx_conf,0,sizeof(rte_eth_rxconf));
-//        memset(&m_tx_conf,0,sizeof(rte_eth_rxconf));
-//        memset(&m_rx_drop_conf,0,sizeof(rte_eth_rxconf));
-//        
-//
-//        m_rx_conf.rx_free_thresh =32;
-//
-//        m_rx_drop_conf.rx_thresh.pthresh = 0;
-//        m_rx_drop_conf.rx_thresh.hthresh = 0;
-//        m_rx_drop_conf.rx_thresh.wthresh = 0;
-//        m_rx_drop_conf.rx_free_thresh =32;
-//        m_rx_drop_conf.rx_drop_en=1;
-//
-//        m_tx_conf.tx_thresh.pthresh = TX_PTHRESH;
-//        m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
-//        m_tx_conf.tx_thresh.wthresh = TX_WTHRESH;
-//
-//        m_port_conf.rxmode.jumbo_frame=1;
-//        m_port_conf.rxmode.max_rx_pkt_len =2000;
-//        m_port_conf.rxmode.hw_strip_crc=1;
     }
 
 
 
 	inline void update_var(void){
-        get_ex_drv()->update_configuration(this);
+   //     get_ex_drv()->update_configuration(this);
     }
 
     inline void update_global_config_fdir(void){
 //        get_ex_drv()->update_global_config_fdir(this);
     }
 
-	/* enable FDIR */
-//	inline void update_global_config_fdir_10g_1g(void){
-//		m_port_conf.fdir_conf.mode=RTE_FDIR_MODE_PERFECT;
-//		m_port_conf.fdir_conf.pballoc=RTE_FDIR_PBALLOC_64K;
-//		m_port_conf.fdir_conf.status=RTE_FDIR_NO_REPORT_STATUS; 
-//		/* Offset of flexbytes field in RX packets (in 16-bit word units). */
-//		/* Note: divide by 2 to convert byte offset to word offset */
-//		if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
-//			m_port_conf.fdir_conf.flexbytes_offset=(14+6)/2;
-//		}else{
-//			m_port_conf.fdir_conf.flexbytes_offset=(14+8)/2;
-//		}
-//                        
-//		/* Increment offset 4 bytes for the case where we add VLAN */
-//		if (  CGlobalInfo::m_options.preview.get_vlan_mode_enable() ){
-//	        	m_port_conf.fdir_conf.flexbytes_offset+=(4/2);
-//		}
-//		m_port_conf.fdir_conf.drop_queue=1;
-//	}
-//
-//    inline void update_global_config_fdir_40g(void){
-//        m_port_conf.fdir_conf.mode=RTE_FDIR_MODE_PERFECT;
-//        m_port_conf.fdir_conf.pballoc=RTE_FDIR_PBALLOC_64K;
-//        m_port_conf.fdir_conf.status=RTE_FDIR_NO_REPORT_STATUS; 
-//        /* Offset of flexbytes field in RX packets (in 16-bit word units). */
-//        /* Note: divide by 2 to convert byte offset to word offset */
-//        #if 0
-//        if (  CGlobalInfo::m_options.preview.get_ipv6_mode_enable() ){
-//            m_port_conf.fdir_conf.flexbytes_offset=(14+6)/2;
-//        }else{
-//            m_port_conf.fdir_conf.flexbytes_offset=(14+8)/2;
-//        }
-//
-//        /* Increment offset 4 bytes for the case where we add VLAN */
-//        if (  CGlobalInfo::m_options.preview.get_vlan_mode_enable() ){
-//                m_port_conf.fdir_conf.flexbytes_offset+=(4/2);
-//        }
-//        #endif
-//
-//    // TBD Flow Director does not work with XL710 yet we need to understand why 
-//    #if 0
-//        struct rte_eth_fdir_flex_conf * lp = &m_port_conf.fdir_conf.flex_conf;
-//
-//        //lp->nb_flexmasks=1;
-//        //lp->flex_mask[0].flow_type=RTE_ETH_FLOW_TYPE_SCTPV4;
-//        //memset(lp->flex_mask[0].mask,0xff,RTE_ETH_FDIR_MAX_FLEXLEN);
-//
-//        lp->nb_payloads=1;
-//        lp->flex_set[0].type = RTE_ETH_L3_PAYLOAD; 
-//        lp->flex_set[0].src_offset[0]=8;
-//
-//        //m_port_conf.fdir_conf.drop_queue=1;
-//    #endif
-//    }
-
-//    struct rte_eth_conf     m_port_conf;
-//    struct rte_eth_rxconf   m_rx_conf;
-//    struct rte_eth_rxconf   m_rx_drop_conf;
-//    struct rte_eth_txconf   m_tx_conf;
 };
 
 
@@ -2501,7 +2421,7 @@ int CGlobalTRex::test_send(){
 
 		lp->update_counters();
 		lp->get_stats().Dump(stdout);
-        lp->dump_stats_extended(stdout);
+//        lp->dump_stats_extended(stdout);
     }
   /*for (j=0; j<4; j++) {
        CPhyEthIF * lp=&m_ports[j];
@@ -3088,8 +3008,13 @@ int  CGlobalTRex::ixgbe_prob_init(void){
 }
 
 int  CGlobalTRex::cores_prob_init(){
-    m_max_cores = odp_cpu_count();
+    m_max_cores = 1+2*CGlobalInfo::m_options.preview.getCores();
+    if ( !CGlobalInfo::m_options.is_latency_disabled() ){
+        m_max_cores++;
+    }
+    assert(m_max_cores <= odp_cpu_count());
     assert(m_max_cores>0);
+    //printf("m_max_cores:%d\n",m_max_cores);
     return (0);
 }
 
@@ -3887,6 +3812,10 @@ typedef struct tx_worker_args_ {
 } tx_worker_args_t;
 
 void* tx_worker_thread(void * args) {
+    if (odp_init_local(ODP_THREAD_WORKER)) {
+        printf("Error: ODP local init failed.\n");
+        exit(1);
+    }
     tx_worker_args_t *tx_args = (tx_worker_args_t*) args;
     tx_args->ret = g_trex.run_in_core(tx_args->virt_core_id);
     return (void*)tx_args;
@@ -3909,7 +3838,7 @@ uint32_t get_cores_mask(uint32_t cores,int offset){
 
 
 int main(int argc , char * argv[]){
-
+    pal_constructor();
     return ( main_test(argc , argv));
 }
 
@@ -4108,7 +4037,6 @@ int main_test(int argc , char * argv[]){
 
     update_dpdk_args();
 
-    CParserOption * po=&CGlobalInfo::m_options;
 
 
     if ( CGlobalInfo::m_options.preview.getVMode() == 0  ) {
@@ -4125,17 +4053,6 @@ int main_test(int argc , char * argv[]){
         return (-1);
     }
 
-    if (odp_init_global(NULL, (odp_platform_init_t*)global_dpdk_args_line)) {
-        printf(" You might need to run ./trex-cfg  once  \n");
-        printf("Error: ODP global init failed.\n");
-        exit(1);
-    }
-
-    if (odp_init_local(ODP_THREAD_CONTROL)) {
-        printf("Error: ODP local init failed.\n");
-        exit(1);
-    } 
-     
     time_init();
     
         /* check if we are in simulation mode */
@@ -4148,10 +4065,6 @@ int main_test(int argc , char * argv[]){
         exit(1);
     }
 
-    if (po->preview.get_is_rx_check_enable() &&  (po->m_rx_check_sampe< get_min_sample_rate()) ) {
-        po->m_rx_check_sampe = get_min_sample_rate();
-        printf("Warning rx check sample rate should be lower than %d setting it to %d\n",get_min_sample_rate(),get_min_sample_rate());
-    }
 
     /* set dump mode */
     g_trex.m_io_modes.set_mode((CTrexGlobalIoMode::CliDumpMode)CGlobalInfo::m_options.m_io_mode);
@@ -4328,12 +4241,4 @@ TrexDpdkPlatformApi::port_id_to_cores(uint8_t port_id, std::vector<std::pair<uin
         }
     }
 }
-
-void
-TrexDpdkPlatformApi::get_interface_info(uint8_t interface_id,
-                                        std::string &driver_name,
-                                        driver_speed_e &speed) const {
-
-    driver_name = CTRexExtendedDriverDb::Ins()->get_driver_name();
-    speed = CTRexExtendedDriverDb::Ins()->get_drv()->get_driver_speed();
-}
+ 

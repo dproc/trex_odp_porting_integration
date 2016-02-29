@@ -43,6 +43,7 @@ public:
         m_ring=odph_ring_create((char *)name.c_str(), 
                                cnt,
 			       RING_F_SP_ENQ | RING_F_SC_DEQ);
+        printf("m_ring:%p\n",m_ring);
         assert(m_ring);
         return(true);
     }

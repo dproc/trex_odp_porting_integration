@@ -157,4 +157,5 @@ int mbuf_to_odp_packet_tbl(rte_mbuf**pkts, odp_packet_t* odp_pkts, uint16_t pkt_
 
 /*FIXME: added this definition to pass the build*/
 static inline void rte_pktmbuf_refcnt_update(struct rte_mbuf *m, int16_t v) {;}
+void pal_constructor(void);
 #endif
