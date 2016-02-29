@@ -3000,6 +3000,7 @@ odp_pktio_t CPhyEthIF::create_pktio(odp_pool_t pool) {
     if(CGlobalInfo::is_odpgeneric()) {
 	//m_port_id is initialized in a way that it can be used as the index
 	const char* devname = global_platform_cfg_info.m_if_list[m_port_id].c_str();
+	printf("devname %d: %s\n", m_port_id, devname);
 	pktio = odp_pktio_open(devname, pool, &pktio_param);
 	if (pktio == ODP_PKTIO_INVALID) {
 	    pktio = odp_pktio_lookup(devname);
