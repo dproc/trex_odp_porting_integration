@@ -1051,11 +1051,12 @@ void CPhyEthIF::start(){
     if (m_pkt_io!=ODP_PKTIO_INVALID) {
         ret = odp_pktio_start(m_pkt_io);
     }
-    if (ret != 0)
+    if (ret != 0) {
         printf("EXIT_FAILURE,odp_pktio_start: "
                 "err=%d, port=%u, pkt_io:%lx\n",
                  ret, m_port_id, odp_pktio_to_u64(m_pkt_io));
         exit(0);
+    }
 
 }
 
@@ -2834,7 +2835,7 @@ int  CGlobalTRex::ixgbe_start(void){
 
 
         _if->stats_clear();
-
+        _if->set_promiscuous(true);
         _if->start();
 //        _if->configure_rx_drop_queue();
 //        _if->configure_rx_duplicate_rules();
@@ -2852,7 +2853,6 @@ int  CGlobalTRex::ixgbe_start(void){
          * as a workaround, I set the NIC to promisc mode
          */
 //        _if->add_mac((char *)CGlobalInfo::m_options.get_src_mac_addr(i));
-        _if->set_promiscuous(true);
         fflush(stdout);
     }
     /* FIXME:
@@ -3849,6 +3849,7 @@ void* tx_worker_thread(void * args) {
         exit(1);
     }
     tx_worker_args_t *tx_args = (tx_worker_args_t*) args;
+    printf("enter tx_worker_thread, core:%d\n",tx_args->virt_core_id);
     tx_args->ret = g_trex.run_in_core(tx_args->virt_core_id);
     return (void*)tx_args;
 }
@@ -4084,6 +4085,22 @@ int main_test(int argc , char * argv[]){
         return (-1);
     }
 
+    if(CGlobalInfo::is_odpgeneric()) {
+        if (odp_init_global(NULL, NULL)) {
+            printf("Error: ODP global init failed.\n");
+            exit(1);
+        }
+    } else {
+        if (odp_init_global(NULL, (odp_platform_init_t*)global_dpdk_args_line)) {
+            printf(" You might need to run ./trex-cfg  once  \n");
+            printf("Error: ODP global init failed.\n");
+            exit(1);
+        }
+    }
+    if (odp_init_local(ODP_THREAD_CONTROL)) {
+        printf("Error: ODP local init failed.\n");
+        exit(1);
+    }
     pal_constructor();
 	  
     time_init();
@@ -4095,10 +4112,11 @@ int main_test(int argc , char * argv[]){
     }
 
     if ( !g_trex.Create() ){
+        printf("error to create t-rex global instance\n");
         exit(1);
     }
 
-
+  
     /* set dump mode */
     g_trex.m_io_modes.set_mode((CTrexGlobalIoMode::CliDumpMode)CGlobalInfo::m_options.m_io_mode);
 
@@ -4170,7 +4188,7 @@ int main_test(int argc , char * argv[]){
         odp_cpumask_t thd_mask;
         odp_cpumask_zero(&thd_mask);
         odp_cpumask_set(&thd_mask, cpu);
-        args[i].virt_core_id = lpsock->thread_phy_to_virt(cpu);
+        args[i].virt_core_id = lpsock->thread_phy_to_virt(i+1);
         odph_linux_pthread_create(&thread_tbl[i], &thd_mask,
                                   tx_worker_thread,
                                   &args[i],

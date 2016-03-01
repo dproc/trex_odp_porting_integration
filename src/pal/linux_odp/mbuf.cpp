@@ -52,26 +52,6 @@ void pal_constructor(void)
 {
     odp_pool_param_t pool_param;
     uint32_t i;
-
-    if(CGlobalInfo::is_odpgeneric()) {
-
-	if (odp_init_global(NULL, NULL)) {
-	    printf("Error: ODP global init failed.\n");
-	    exit(1);
-	}	
-    } else {
-	if (odp_init_global(NULL, (odp_platform_init_t*)global_dpdk_args_line)) {
-	    printf(" You might need to run ./trex-cfg  once  \n");
-	    printf("Error: ODP global init failed.\n");
-	    exit(1);
-	}
-    }
-    
-    if (odp_init_local(ODP_THREAD_CONTROL)) {
-        printf("Error: ODP local init failed.\n");
-        exit(1);
-    } 
-     
     odph_ring_tailq_init();
  
     odp_pool_param_init(&pool_param);
