@@ -1115,15 +1115,15 @@ void CPhyEthIF::get_stats(CPhyEthIFStats *stats){
 
    odp_pktio_stats_t odp_stats;
    odp_pktio_stats(m_pkt_io, &odp_stats);
-   stats->ipackets    += odp_stats.in_ucast_pkts;
-   stats->ibytes      += odp_stats.in_octets;
-   stats->f_ipackets  += 0;
-   stats->f_ibytes    += 0;
-   stats->opackets    += odp_stats.out_ucast_pkts;
-   stats->obytes      += odp_stats.out_octets;
-   stats->imcasts     += 0;
-   stats->ierrors     += odp_stats.in_errors;
-   stats->oerrors     += odp_stats.out_errors; 
+   stats->ipackets    = odp_stats.in_ucast_pkts;
+   stats->ibytes      = odp_stats.in_octets;
+   stats->f_ipackets  = 0;
+   stats->f_ibytes    = 0;
+   stats->opackets    = odp_stats.out_ucast_pkts;
+   stats->obytes      = odp_stats.out_octets;
+   stats->imcasts     = 0;
+   stats->ierrors     = odp_stats.in_errors;
+   stats->oerrors     = odp_stats.out_errors; 
 
    m_last_tx_rate      =  m_bw_tx.add(stats->obytes);
    m_last_rx_rate      =  m_bw_rx.add(stats->ibytes);
@@ -3041,7 +3041,9 @@ int  CGlobalTRex::ixgbe_prob_init(void){
 }
 
 int  CGlobalTRex::cores_prob_init(){
-    m_max_cores = 1+2*CGlobalInfo::m_options.preview.getCores();
+    m_max_cores = 1+ CGlobalInfo::m_options.get_number_of_dp_cores_needed(); 
+//    m_max_cores = 1+ 2*CGlobalInfo::m_options.preview.getCores();
+
     if ( !CGlobalInfo::m_options.is_latency_disabled() ){
         m_max_cores++;
     }
@@ -3845,10 +3847,10 @@ typedef struct tx_worker_args_ {
 } tx_worker_args_t;
 
 void* tx_worker_thread(void * args) {
-    if (odp_init_local(ODP_THREAD_WORKER)) {
-        printf("Error: ODP local init failed.\n");
-        exit(1);
-    }
+    // if (odp_init_local(ODP_THREAD_WORKER)) {
+    //     printf("Error: ODP local init failed.\n");
+    //     exit(1);
+    // }
     tx_worker_args_t *tx_args = (tx_worker_args_t*) args;
     printf("enter tx_worker_thread, core:%d\n",tx_args->virt_core_id);
     tx_args->ret = g_trex.run_in_core(tx_args->virt_core_id);

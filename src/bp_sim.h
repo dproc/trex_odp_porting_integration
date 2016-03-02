@@ -680,11 +680,11 @@ public:
     }
 
     void setODPGeneric(bool enable){
-        btSetMaskBit32(m_flags1,5,5,enable?1:0);
+        btSetMaskBit32(m_flags1,6,6,enable?1:0);
     }
 
     bool getODPGeneric(){
-        return (btGetMaskBit32(m_flags1,5,5) ? true:false);
+        return (btGetMaskBit32(m_flags1,6,6) ? true:false);
     }
 
 
