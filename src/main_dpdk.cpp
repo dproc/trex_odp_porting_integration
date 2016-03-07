@@ -1507,6 +1507,11 @@ int CCoreEthIF::send_burst(CCorePerPort * lp_port,
     /* CPU has burst of packets , more that TX can send need to drop them !!*/
     if ( odp_unlikely(ret < len) ) {
         lp_stats->m_tx_drop += (len-ret);
+        /*
+         * FIXME
+         * if ret<len, we should free the pkt_buffer by ourself. 
+         * rte_pktmbuf_free only free the mbuf
+         */
     }
     uint16_t i;
     for (i=0; i<len;i++) {
