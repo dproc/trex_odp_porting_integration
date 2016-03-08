@@ -1067,22 +1067,6 @@ struct rte_eth_dev_sriov {
 
 
 /**
- * Retrieve the contextual information of an Ethernet device.
- *
- * @param port_id
- *   The port identifier of the Ethernet device.
- * @param dev_info
- *   A pointer to a structure of type *rte_eth_dev_info* to be filled with
- *   the contextual information of the Ethernet device.
- */
-void rte_eth_dev_info_get(uint8_t port_id,
-				 struct rte_eth_dev_info *dev_info)
-{
-;
-}
-
-
-/**
  * The eth device event type for interrupt, and maybe others in the future.
  */
 enum rte_eth_event_type {

@@ -120,7 +120,7 @@ class COptions:
         self.cmd_exec(r'./bootstrap')
         self.cmd_exec(r'./configure --with-platform=linux-dpdk --with-sdk-install-path='+self.base_dir+'dpdk_src/x86_64-native-linuxapp-gcc'+ " --prefix="+self.base_dir+"odp-dpdk/build")
         self.cmd_exec('make')
-        self.cmd_exec("make install")
+        #self.cmd_exec("make install")
         #cp alias with "cp -i", use \cp to overright it
         self.cmd_exec(r"mkdir ../../../external_libs/odp")
         self.cmd_exec(r"\cp build/lib/libodp* ../../../external_libs/odp/")

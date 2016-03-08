@@ -1248,6 +1248,9 @@ inline uint16_t  CPhyEthIF::tx_burst(rte_mbuf **tx_pkts,
     cnt = mbuf_to_odp_packet_tbl(tx_pkts, odp_pkts, nb_pkts); 
     assert (cnt==nb_pkts);
     uint16_t ret = odp_pktio_send(m_pkt_io, odp_pkts, nb_pkts); 
+    for (int i=0; i<nb_pkts; i++) {
+        odp_packet_free(odp_pkts[i]);
+    }
     return (ret);
 }
 
@@ -3011,7 +3014,10 @@ odp_pktio_t CPhyEthIF::create_pktio(odp_pool_t pool) {
 	    pktio = odp_pktio_lookup(devname);
 	}
     } else {
-	pktio = odp_pktio_open((char*)&m_port_id, pool, &pktio_param);
+       //m_port_id is initialized in a way that it can be used as the index
+    char dev[100];
+    sprintf(dev,"%d",m_port_id);
+    pktio = odp_pktio_open(dev, pool, &pktio_param);
 	if (pktio == ODP_PKTIO_INVALID) {
 	    pktio = odp_pktio_lookup((char*)&m_port_id);
 	}
@@ -4099,7 +4105,7 @@ int main_test(int argc , char * argv[]){
             exit(1);
         }
     } else {
-        if (odp_init_global(NULL, (odp_platform_init_t*)global_dpdk_args_line)) {
+        if (odp_init_global(NULL, NULL)){//(odp_platform_init_t*)global_dpdk_args_line)) {
             printf(" You might need to run ./trex-cfg  once  \n");
             printf("Error: ODP global init failed.\n");
             exit(1);

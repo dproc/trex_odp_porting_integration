@@ -432,6 +432,7 @@ includes_path =''' ../src/pal/linux_odp/
                    ../external_libs/zmq/include/
                    ../external_libs/json/
                    ../external_libs/odp/include/
+                   ../external_libs/odp/platform/linux-dpdk/include/
                    ../external_libs/odp/platform/linux-generic/include/ 
                    ../external_libs/odp/helper/include
                    ../external_libs/odp/platform/linux-generic/arch/x86/
