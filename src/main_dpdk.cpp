@@ -4105,7 +4105,8 @@ int main_test(int argc , char * argv[]){
             exit(1);
         }
     } else {
-        if (odp_init_global(NULL, NULL)){//(odp_platform_init_t*)global_dpdk_args_line)) {
+      //      if (odp_init_global(NULL, NULL)){//(odp_platform_init_t*)global_dpdk_args_line)) {
+      if (odp_init_global(NULL, (odp_platform_init_t*)global_dpdk_args_line)) {
             printf(" You might need to run ./trex-cfg  once  \n");
             printf("Error: ODP global init failed.\n");
             exit(1);
